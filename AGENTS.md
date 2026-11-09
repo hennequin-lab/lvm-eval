@@ -3,11 +3,10 @@
 ## Purpose
 Library of evaluation metrics for latent variable models. Receives model
 outputs and targets; never contains models, weights, or training code.
-First metric set: NLB (/projects/distil/_papers/NLB.pdf), reproduced exactly
-and kept standalone. Reference implementation: github.com/neurallatents/nlb_tools.
+First metric set: NLB (/home/fh397/projects/distil/_papers/NLB.pdf), reproduced for valid inputs; deliberate degenerate-input deviations are listed in plan.md §9. Reference implementation: github.com/neurallatents/nlb_tools.
 
 ## Hard constraints 
-- Pinned to murder via Dune package management ((pin (url "../murder") ...)
+- Pinned to /home/fh397/projects/murder via Dune package management ((pin (url "../murder") ...)
   in dune-project, committed dune.lock), as distil does. Not opam. Raven
   versions are whatever murder pins.
 - OCaml Raven only for numerics/ML. No Python in the build or runtime.
@@ -25,8 +24,13 @@ and kept standalone. Reference implementation: github.com/neurallatents/nlb_tool
   compatibility, and fail with clear errors.
 - Anything that is part of a metric's definition in NLB.pdf / nlb_tools
   (smoothing, averaging, regression fitting, normalisation) lives inside
-  lvm-eval. Anything that is data preparation lives in the caller. If it is
-  unclear which, stop and ask.
+  lvm-eval, except the approved PSTH exception below. Anything that is data
+  preparation lives in the caller. If it is unclear which, stop and ask.
+- **PSTH R² exception.** PSTH construction (1 ms smoothing, resampling,
+  condition averaging, trial exclusion, padding) is caller data preparation.
+  lvm-eval takes a precomputed `psth`, `eval_cond_idx` and `jitter` and
+  computes only the jittered condition averaging and R². See plan.md §3b and
+  §4.3.
 
 ## Testing and fixtures
 - Tolerance: relative 1e-6 in float64. If Raven only gives float32 for an

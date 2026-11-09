@@ -60,7 +60,7 @@ API takes `Nx.float64_t` tensors (see §11 and §8).
 ### 2.1 Dependency rule
 
 `lvm-eval` depends only on Raven (`nx`) and the OCaml standard library/Base
-as needed. It never depends on `distil`, `am-m2`, or any other project.
+as needed. It never depends on `distil`, or any other project.
 Callers depend on `lvm-eval`; the direction is one-way.
 
 `lvm-eval` contains no data loading, splitting, alignment, binning, storage,
@@ -226,6 +226,7 @@ let bps =
     ~rates_heldout:(heldout_neurons rates_t_t_n)
     ~spikes_heldout:(heldout_neurons (Nx.cast Nx.float64 spikes_t_t_n))
     ~mask_heldout:(heldout_neurons valid_mask_t_t_n)
+    ()
 ```
 
 The other examples below assume the caller has already cast float tensors to
@@ -237,6 +238,7 @@ let fp_bps =
   Lvm_eval.Bits.forward_prediction
     ~rates_forward:forward_rates_t_f_n
     ~spikes_forward:forward_spikes_t_f_n
+    ()
 ```
 
 ```ocaml
@@ -247,6 +249,7 @@ let psth_r2 =
     ~psth:psth_c_t_n
     ~eval_cond_idx:condition_trial_indices
     ~jitter:jitter_bins
+    ()
 ```
 
 ```ocaml
@@ -256,12 +259,14 @@ let code_r =
     ~mask:set_go_t_t
     ~conditions:condition_labels
     ~tp:produced_intervals_s
+    ()
 
 let global_r =
   Lvm_eval.Dmfc.speed_tp_global
     ~rates_eval:rates_t_t_n
     ~mask:set_go_t_t
     ~tp:produced_intervals_s
+    ()
 ```
 
 ```ocaml
@@ -273,6 +278,7 @@ let decode_r2 =
     ~behaviour_eval:velocity_eval_t_t_d
     ~train_decode_mask:train_masks
     ~eval_decode_mask:eval_masks
+    ()
 ```
 
 ## 3b. METRIC/CALLER boundary
@@ -317,10 +323,11 @@ let decode_r2 =
 
 ### Velocity decoding
 
-- **Inside lvm-eval (METRIC):** drop rows selected by the reference’s
-  first-behaviour-column NaN rule; require finite rates/behaviour; flatten
-  trial-time samples; fit one centered ridge per mask column; select alpha by
-  contiguous K-fold CV; predict; per-output R²; average across masks.
+- **Inside lvm-eval (METRIC):** select the trials chosen by the mask; flatten
+  trial-major; drop flattened samples with NaN in the first behaviour column;
+  require finite retained rates/behaviour; fit one centered ridge per mask
+  column; select alpha by contiguous K-fold CV; predict; per-output R²;
+  average across masks.
 - **Caller (CALLER):** train/eval split; behaviour lag and alignment; decode
   masks (Area2_Bump active/passive); behaviour extraction and units; padding;
   per-bin rates; official split; any feature standardization (the NLB path
@@ -484,10 +491,11 @@ flattens selected trials/time to samples, and averages R² across columns.
 finite rates, fits `GridSearchCV(Ridge(), {"alpha": np.logspace(-4,0,9)})`,
 and returns `decoder.score` (R²).
 
-**Numerical approach.** Inputs are float64 at the API boundary. Apply the reference NaN-row rule on
-the first behaviour column; then require all retained rates/behaviour finite.
-Flatten `[trial;time;feature]` trial-major. Center `X` and `y`; for each alpha
-in the default grid solve `(XᵀX + αI)w = Xᵀy` with `Nx.cholesky` +
+**Numerical approach.** Inputs are float64 at the API boundary. For each mask
+column: select the mask trials; flatten `[trial;time;feature]` trial-major;
+drop flattened samples with NaN in the first behaviour column; require all
+retained rates/behaviour finite. Center `X` and `y`; for each alpha in the
+default grid solve `(XᵀX + αI)w = Xᵀy` with `Nx.cholesky` +
 `solve_triangular`, falling back to `Nx.svd` if the factorization is not
 positive-definite. Contiguous 5-fold over the flattened training samples;
 choose the alpha with the highest mean validation R²; refit on all training
@@ -499,8 +507,8 @@ samples; predict eval; compute R² per output dimension with sklearn’s
   linear map” wording, which is removed.
 - No feature standardization and no decoding lag inside the metric.
 - The CV folds are over flattened samples, not trials.
-- Empty masks, fewer than two training rows, or non-finite retained values are
-  errors.
+- Empty masks, training samples fewer than `folds` (default 5), or non-finite
+  retained values are errors. `folds` must be at least 2.
 - Constant behaviour dimensions use the force-finite rule: R² 1 if perfect,
   otherwise 0.
 - `alphas`/`folds` are metric parameters with NLB defaults; callers may
@@ -530,16 +538,16 @@ expected values.
 - Velocity: `evaluation.py:437 velocity_decoding`, including the default
   `GridSearchCV` path.
 
-The fixture environment must be recorded with the fixtures. The selected
-environment for generation is:
+The fixture environment is fixed for this plan at:
 
 - Python 3.13.5
 - numpy 2.5.4
 - scipy 1.18.1
 - scikit-learn 1.9.1
 
-`nlb_tools` does not pin scikit-learn. If a different version is used, record
-it in §12 and regenerate every affected golden; do not mix versions.
+`nlb_tools` does not pin scikit-learn; this is lvm-eval’s chosen reference
+environment. If a different version is used, update §12 and regenerate every
+affected golden; do not mix versions.
 
 ### 5.2 Fixture layout
 
@@ -557,12 +565,20 @@ Fixtures are plain `.npy` arrays of exactly what a caller passes plus a
 plain-text expected scalar and metadata. Tests may use the `nx.io` sublibrary
 to read fixtures; that is test-only and never part of the metric core.
 `meta.txt` records shapes, dtypes, seed (if any), and generator versions.
+
+Ragged trials are rectangularized before the call: pad the time axis with
+NaN, and supply an explicit boolean mask where the metric takes one. Fixtures
+contain no jagged/object arrays. Padded entries are never scored. Decoder
+fixtures follow the reference order: select mask trials, flatten trial-major,
+then drop flattened samples with NaN in the first behaviour column. PSTH
+fixtures use NaN padding and the first-neuron NaN row selector.
+
 Synthetic fixtures come first. Real-data fixtures are blocked (see §13).
 
 ### 5.3 Tolerance and precision
 
-- Relative tolerance `1e-6` in float64, with an absolute floor of `1e-12` for
-  expected zero.
+- **Tolerance decision:** relative tolerance `1e-6` in float64, with an
+  absolute floor of `1e-12` for expected zero. Do not loosen without approval.
 - Compare finite scalars only; a NaN/Inf expected value is a fixture error
   unless the case is explicitly testing an error path.
 - Callers cast float32 inputs to float64 before the call; the metric core
@@ -608,7 +624,9 @@ diagnostic with a different decoder protocol.
 `cmdargs` is pinned only as the Dune recursive-pin anchor. `lvm-eval` does
 not link or depend on `cmdargs`; it depends on Raven `nx`. A throwaway project
 in `/tmp` confirmed that pinning `cmdargs` and depending only on `nx`/`rune`
-resolves Raven at murder’s commit. The planned package depends on:
+resolves Raven at murder’s commit. The planned Dune package is `lvm-eval`; the
+public library is `lvm_eval`; the license is ISC (matching murder and distil).
+The package depends on:
 
 ```text
 (ocaml (>= 5.5.0))
@@ -652,10 +670,11 @@ hand-edit it otherwise. The workaround is documented in
 ### 6.3 User-facing documentation
 
 `README.md` states that callers use Dune package management, that the planned
-package/library is `lvm_eval`, and that `lvm-eval` pins `../murder` and
-inherits Raven at murder’s commit. `docs/nlb-protocol.md` records dataset
-values as documentation only. No dataset configs or presets are compiled into
-the library.
+Dune package is `lvm-eval`, that the library is `lvm_eval`, and that the
+license is ISC. It records that `lvm-eval` pins `../murder` and inherits Raven
+at murder’s commit. `docs/nlb-protocol.md` records dataset values as
+documentation only. No dataset configs or presets are compiled into the
+library.
 
 ## 7. Milestones
 
@@ -721,33 +740,19 @@ contiguous K-fold, predict). Reuse `R2`. Implement
 
 Done-check: a fixture from `velocity_decoding` matches within 1e-6, including
 the default 9-alpha/5-fold path; one and multiple decode-mask columns are
-tested; no standardization; empty mask raises; NaN in a non-first behaviour
-column raises; constant behaviour uses force-finite R²; no mutation.
+tested; no standardization; empty mask raises; training samples below `folds`
+raises; NaN in a non-first behaviour column raises; constant behaviour uses
+force-finite R²; no mutation.
 
 ## 8. Open questions
 
-1. **scikit-learn version for goldens.** Proposed default: 1.9.1, with numpy
-   2.5.4/scipy 1.18.1/Python 3.13.5. `nlb_tools` does not pin one. Confirm
-   before fixtures are generated; record the actual version in §12.
-2. **AGENTS.md stale paths.** `AGENTS.md` still says
-   `/projects/distil/_papers/NLB.pdf`; real path is
-   `/home/fh397/projects/distil/_papers/NLB.pdf`. Proposed change is listed in
-   the task reply; AGENTS is not edited without approval.
-3. **Public dtype.** This plan uses `Nx.float64_t` at the public boundary and
+1. **Public dtype.** This plan uses `Nx.float64_t` at the public boundary and
    requires callers with float32 to cast first. This keeps one metric path and
    satisfies the float64 requirement. The approved report allowed float32
    inputs with an internal cast; confirm whether float64-only is preferred.
-4. **GPU policy.** Proposed default: entry points copy non-host inputs to host
-   float64 and compute on CPU. Confirm whether callers should instead get a
-   clear error and transfer themselves.
-5. **UNVERIFIED reference cases.** The reference has no explicit guard for
-   PSTH with no valid condition rows or DMFC empty-after-mask conditions; these
-   are marked UNVERIFIED in §9 and the proposed default is a clear error.
-   Negative and non-integer spikes are treated as deliberate validation
-   deviations; confirm both choices.
-6. **Real-data fixtures.** `data/eval_data_test.h5` in the reference clone is
-   a Git LFS pointer and was not fetched. Real-target fixtures remain blocked
-   until an approved, licensed source is available.
+
+The scikit-learn/fixture environment is fixed in §5.1 and §12. GPU placement
+is decided in §11. Real-data fixtures are blocked, not open; see §13.
 
 ## 9. Edge-case behaviour
 
@@ -770,19 +775,20 @@ without the deviations in this table.
 | forward: zero total spikes | Same division as bps (`evaluation.py:276`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | PSTH: condition with no eval trials | Skips it (`evaluation.py:367-368`) | Skips it | REPRODUCES REFERENCE |
 | PSTH: all conditions empty | No explicit guard; `np.vstack([])` at `evaluation.py:381` | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| PSTH: no valid rows across all conditions | Empty stacked arrays reach `r2_score`, which raises `ValueError` (`evaluation.py:381-383`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | PSTH: NaN prediction in a required row | Asserts (`evaluation.py:375-377`) | Clear error naming condition/time | REPRODUCES REFERENCE (rejects; clearer error) |
 | PSTH: inconsistent first-neuron padding | Uses `psth[c,:,0]` only (`evaluation.py:373-374`); other-neuron NaNs are not masked | Same assumption; a non-finite result raises rather than returning NaN | REPRODUCES REFERENCE (documented first-neuron assumption) |
 | PSTH: jitter length mismatch | `jitter[idx]` raises `IndexError` (`evaluation.py:370`) | Clear shape error | DELIBERATE DEVIATION FROM REFERENCE |
-| DMFC code: singleton condition | `pearsonr` returns NaN; mean becomes NaN (`evaluation.py:430-432`) | Clear error: condition needs at least two trials | DELIBERATE DEVIATION FROM REFERENCE |
-| DMFC code: constant speed or `tp` | `pearsonr` returns NaN; mean becomes NaN (`evaluation.py:430`) | Clear error: correlation undefined | DELIBERATE DEVIATION FROM REFERENCE |
-| DMFC code: empty condition after mask | No explicit guard (`evaluation.py:428-431`); reference behaviour not tested | Clear error | UNVERIFIED |
-| DMFC global: singleton/constant | No `nlb_tools` implementation | Clear error | DELIBERATE DEVIATION FROM REFERENCE (no reference; Python golden) |
+| DMFC code: singleton condition | scipy 1.18.1 `pearsonr` raises `ValueError` (“must have length at least 2”); `evaluation.py:430` | Clear error: condition needs at least two trials | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of scipy exception) |
+| DMFC code: constant speed or `tp` with at least two trials | scipy 1.18.1 `pearsonr` returns NaN; mean becomes NaN (`evaluation.py:430-432`) | Clear error: correlation undefined | DELIBERATE DEVIATION FROM REFERENCE |
+| DMFC code: empty condition after mask | scipy 1.18.1 `pearsonr` on empty input raises `ValueError` (`evaluation.py:428-430`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of scipy exception) |
+| DMFC global: empty/singleton/constant | No `nlb_tools` implementation; the Python golden uses scipy 1.18.1 (`ValueError` for empty/singleton, NaN for constant) | Clear error | DELIBERATE DEVIATION FROM REFERENCE (no reference; Python golden) |
 | velocity: empty decode mask | `Ridge.fit` on zero samples raises (`evaluation.py:481-488`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
-| velocity: NaN in non-first behaviour column | Drops rows only by column 0 (`evaluation.py:314-319`); Ridge then fails on NaN target | Drops exactly the reference rows, then raises if any retained value is non-finite | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of estimator failure) |
+| velocity: NaN in non-first behaviour column | After mask selection and trial-major flatten, drops samples only by column 0 (`evaluation.py:314-319`); Ridge then fails on NaN target | Selects mask trials, flattens trial-major, drops first-column NaN samples, then raises if any retained value is non-finite | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of estimator failure) |
 | velocity: all-NaN behaviour rows | Drops all rows; Ridge fails (`evaluation.py:314-319`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | velocity: constant behaviour dimension | sklearn R² force-finite: 1 if perfect, otherwise 0 (`evaluation.py:329`) | Same force-finite rule | REPRODUCES REFERENCE |
-| velocity: no decode mask | `evaluate` creates one all-True mask (`evaluation.py:123-129`) | Default one all-True column | REPRODUCES REFERENCE |
-| velocity: fewer than two training rows | Ridge raises (`evaluation.py:324-329`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| velocity: no decode mask | `evaluate` creates one all-True mask (`evaluation.py:125-133`) | Default one all-True column | REPRODUCES REFERENCE |
+| velocity: training samples fewer than `folds` (default 5) | `GridSearchCV`/`KFold` raises (`evaluation.py:324-329`; sklearn default 5-fold) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 
 ## 10. Decode masks and PSTH pooling
 
@@ -791,7 +797,7 @@ without the deviations in this table.
   (`evaluation.py:479-491`), including the two Area2_Bump masks
   (`make_tensors.py:66`). It contradicts the old README’s “one linear map”
   wording; the README no longer says that. The default with no mask is one
-  all-True column, matching `evaluate` (`evaluation.py:123-129`).
+  all-True column, matching `evaluate` (`evaluation.py:125-133`).
 - **PSTH R² pools condition-time rows.** `eval_psth` stacks all valid rows
   from all conditions and computes one R² per neuron (`evaluation.py:381-383`),
   then sklearn averages over neurons. It is not an equal-weight average of
@@ -807,12 +813,12 @@ without the deviations in this table.
   `Nx.float64_t`; callers with float32 cast once at the boundary. No metric
   accumulates sums in float32.
 - Raven’s AMD backend does not implement `cholesky`, `svd`, or
-  `solve_triangular` (`/home/fh397/projects/murder/_build/_private/default/.pkg/nx.dev-d72ee0573d470fa5f4fd2c6a645d5cc5/source/packages/nx/lib/amd/backend.ml:1259-1266`).
-  The library never calls those operations on an AMD device.
-- Entry points accept any Nx placement and copy non-host tensors to host
-  float64 before the computation. Callers may pre-place tensors on host to
-  avoid the copy. If host copying is unavailable in a caller’s Nx build, the
-  call fails with a clear error rather than running float32/linalg on GPU.
+  `solve_triangular` (Raven pin `3984341140aef7bfc6f27eb14474f4a261a7b7bc`,
+  `packages/nx/lib/amd/backend.ml:1259-1266`). The library never calls those
+  operations on an AMD device.
+- Entry points require `Placement.host`; a non-host tensor raises
+  `Invalid_argument` naming the tensor and its placement. There is no internal
+  transfer.
 - `Nx.sum` accumulation order is unspecified; use the tolerance in §5.3.
 - `Nx.lgamma` is used for `lgamma(spikes+1)`; spike counts are nonnegative
   integers and the model/null `lgamma` terms cancel in bps but are retained to
@@ -826,7 +832,8 @@ without the deviations in this table.
 | murder | `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` |
 | Raven | `3984341140aef7bfc6f27eb14474f4a261a7b7bc` |
 | nlb_tools | `42f8410b88e12db136910fa2f888b025ea0aa2ae` |
-| scikit-learn (fixture generator) | 1.9.1 (selected; `nlb_tools` does not pin one) |
+| Dune package / library / license | `lvm-eval` / `lvm_eval` / ISC |
+| scikit-learn (fixture generator) | 1.9.1 (fixed; `nlb_tools` does not pin one) |
 | numpy (fixture generator) | 2.5.4 |
 | scipy (fixture generator) | 1.18.1 |
 | Python (fixture generator) | 3.13.5 |

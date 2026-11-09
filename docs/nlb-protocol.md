@@ -101,7 +101,7 @@ Citations:
   same per-trial speed and set-go mask but one Pearson r across all eval
   trials; its goldens come from a separate Python script. See `plan.md` §4.5.
 - **5 ms vs 20 ms.** The paper describes 5 ms submissions; `nlb_tools` also
-  evaluates 20 ms submissions (`evaluation.py:14-207` loops over `[5, 20]`).
+  evaluates 20 ms submissions (`evaluation.py:56-65` loops over `[5, 20]`).
   Bin width is data preparation; `lvm-eval` metrics consume per-bin rates and
   do not take a bin-width argument.
 

@@ -26,14 +26,15 @@ trial or neuron alignment.
 
 ## How to depend on it
 
-Use Dune package management. The planned package/library name is `lvm_eval`.
-A caller pins this repository; `lvm-eval` pins `../murder` itself and inherits
-Raven at the commit murder pins. The exact pin, lock and Raven dev-package
-workaround are in [`plan.md`](plan.md) §6.
+Use Dune package management. The planned Dune package is `lvm-eval`; the
+library is `lvm_eval`; the license is ISC. A caller pins this repository;
+`lvm-eval` pins `../murder` itself and inherits Raven at the commit murder
+pins. The exact pin, lock and Raven dev-package workaround are in
+[`plan.md`](plan.md) §6.
 
 ```text
 ; planned; the Dune project does not exist yet
-(pin (url "../lvm-eval") (package (name lvm_eval)))
+(pin (url "../lvm-eval") (package (name lvm-eval)))
 ```
 
 `lvm-eval` never depends on its callers.
@@ -51,6 +52,10 @@ The first release reproduces the `nlb_tools` NLB metrics for valid inputs.
 The DMFC_RSG global variant is a documented paper reading, not an
 `nlb_tools` reproduction. Deliberate deviations are limited to degenerate
 inputs and are listed in `plan.md` §9.
+
+## License
+
+ISC.
 
 ## References
 
