@@ -6,9 +6,10 @@ outputs and targets; never contains models, weights, or training code.
 First metric set: NLB (/projects/distil/_papers/NLB.pdf), reproduced exactly
 and kept standalone. Reference implementation: github.com/neurallatents/nlb_tools.
 
-## Hard constraints
-- Pinned to /projects/murder via opam pin. Raven versions are whatever
-  murder contains. Do not add other numerics libraries.
+## Hard constraints 
+- Pinned to murder via Dune package management ((pin (url "../murder") ...)
+  in dune-project, committed dune.lock), as distil does. Not opam. Raven
+  versions are whatever murder pins.
 - OCaml Raven only for numerics/ML. No Python in the build or runtime.
   Python is used only to generate test fixtures, under reference/, outside dune.
 - lvm-eval never depends on other projects (distil etc.).
