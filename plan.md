@@ -624,8 +624,7 @@ diagnostic with a different decoder protocol.
 `cmdargs` is pinned only as the Dune recursive-pin anchor. `lvm-eval` does
 not link or depend on `cmdargs`; it depends on Raven `nx`. A throwaway project
 in `/tmp` confirmed that pinning `cmdargs` and depending only on `nx`/`rune`
-resolves Raven at murder’s commit. The planned Dune package is `lvm-eval`; the
-public library is `lvm_eval`; the license is ISC (matching murder and distil).
+resolves Raven at murder’s commit. The planned Dune package and public library are `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC (matching murder and distil).
 The package depends on:
 
 ```text
@@ -670,7 +669,7 @@ hand-edit it otherwise. The workaround is documented in
 ### 6.3 User-facing documentation
 
 `README.md` states that callers use Dune package management, that the planned
-Dune package is `lvm-eval`, that the library is `lvm_eval`, and that the
+Dune package and public library are `lvm-eval`, the OCaml module is `Lvm_eval`, the internal library name is `lvm_eval`, and that the
 license is ISC. It records that `lvm-eval` pins `../murder` and inherits Raven
 at murder’s commit. `docs/nlb-protocol.md` records dataset values as
 documentation only. No dataset configs or presets are compiled into the
@@ -832,7 +831,7 @@ without the deviations in this table.
 | murder | `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` |
 | Raven | `3984341140aef7bfc6f27eb14474f4a261a7b7bc` |
 | nlb_tools | `42f8410b88e12db136910fa2f888b025ea0aa2ae` |
-| Dune package / library / license | `lvm-eval` / `lvm_eval` / ISC |
+| Dune package / library / public library / OCaml module / license | `lvm-eval` / `lvm-eval` / `Lvm_eval` / ISC |
 | scikit-learn (fixture generator) | 1.9.1 (fixed; `nlb_tools` does not pin one) |
 | numpy (fixture generator) | 2.5.4 |
 | scipy (fixture generator) | 1.18.1 |

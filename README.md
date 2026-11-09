@@ -26,8 +26,8 @@ trial or neuron alignment.
 
 ## How to depend on it
 
-Use Dune package management. The planned Dune package is `lvm-eval`; the
-library is `lvm_eval`; the license is ISC. A caller pins this repository;
+Use Dune package management. The planned Dune package and public library are `lvm-eval`; the
+OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC. A caller pins this repository;
 `lvm-eval` pins `../murder` itself and inherits Raven at the commit murder
 pins. The exact pin, lock and Raven dev-package workaround are in
 [`plan.md`](plan.md) §6.
@@ -35,6 +35,8 @@ pins. The exact pin, lock and Raven dev-package workaround are in
 ```text
 ; planned; the Dune project does not exist yet
 (pin (url "../lvm-eval") (package (name lvm-eval)))
+; caller's dune file
+(libraries lvm-eval)
 ```
 
 `lvm-eval` never depends on its callers.
