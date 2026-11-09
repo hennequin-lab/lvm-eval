@@ -1,0 +1,20 @@
+generator: reference/generate_fixtures.py
+fixture_kind: synthetic
+seed: 0
+python: 3.13.5
+numpy: 2.5.4
+scipy: 1.18.1
+scikit-learn: 1.9.1
+h5py: 3.16.0
+nlb_tools_commit: 42f8410b88e12db136910fa2f888b025ea0aa2ae
+reference_note: expected bps are computed on a copy of rates because neg_log_likelihood mutates zero rates in place
+
+case normal: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
+case zero_rate: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
+case nan_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=(2, 3, 2) bool; expected=numeric
+case zero_spike_neuron: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
+case zero_total_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
+case negative_rate: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
+case negative_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
+case non_integer_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
+case all_false_mask: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=(2, 3, 2) bool; expected=error

@@ -1,0 +1,5 @@
+(alias
+ (name ci)
+ (deps
+  (alias fmt)
+  (alias_rec runtest)))

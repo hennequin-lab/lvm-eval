@@ -1,3 +1,11 @@
 (test
  (name test_smoke)
+ (modules test_smoke)
  (libraries nx lvm_eval))
+
+(test
+ (name test_bits)
+ (modules test_bits)
+ (libraries nx nx.io lvm_eval)
+ (deps
+  (source_tree fixtures)))
