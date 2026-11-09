@@ -1,0 +1,5 @@
+(library
+ (name lvm_eval)
+ (public_name lvm-eval)
+ (libraries nx)
+ (modules lvm_eval check mask numeric r2 pearson ridge bits psth dmfc decode))

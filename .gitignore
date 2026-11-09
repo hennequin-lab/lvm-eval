@@ -1,0 +1,12 @@
+# Local phase responses: model output, never tracked.
+/_phase_responses/
+
+# Build outputs
+_build/
+_opam/
+
+# Python and local environments
+__pycache__/
+*.pyc
+venv/
+.venv/
