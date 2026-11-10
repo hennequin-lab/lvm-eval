@@ -274,6 +274,15 @@ let () =
     (fun () -> call_forward ~rates ~spikes ~mask:mask_wrong ())
 
 let () =
+  let rates = create float64 [| 1; 2; 2 |] [| 1.; 1.; 1.; 1. |] in
+  let spikes = create float64 [| 1; 2; 2 |] [| 0.; 0.; 0.; 0. |] in
+  expect_invalid_contains
+    "forward zero total spikes"
+    [ "Lvm_eval.Bits.forward_prediction"; "no scored spikes" ]
+    (fun () ->
+       Lvm_eval.Bits.forward_prediction ~rates_forward:rates ~spikes_forward:spikes ())
+
+let () =
   Printf.printf
     "bits/forward: max relative error=%.3e max absolute error (expected zero)=%.3e\n%!"
     !max_relative

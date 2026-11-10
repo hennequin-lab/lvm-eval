@@ -832,7 +832,7 @@ without the deviations in this table.
 | murder | `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` |
 | Raven | `3984341140aef7bfc6f27eb14474f4a261a7b7bc` |
 | nlb_tools | `42f8410b88e12db136910fa2f888b025ea0aa2ae` |
-| Dune package / library / public library / OCaml module / license | `lvm-eval` / `lvm-eval` / `Lvm_eval` / ISC |
+| Dune package / Dune library / public name / OCaml module / license | `lvm-eval` / `lvm_eval` / `lvm-eval` / `Lvm_eval` / ISC |
 | scikit-learn (fixture generator) | 1.9.1 (fixed; `nlb_tools` does not pin one) |
 | numpy (fixture generator) | 2.5.4 |
 | scipy (fixture generator) | 1.18.1 |
