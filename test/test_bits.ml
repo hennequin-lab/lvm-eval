@@ -149,10 +149,15 @@ let () =
   let rates = load_float "nan_spikes_rates" in
   let spikes = load_float "nan_spikes_spikes" in
   let mask = load_bool "nan_spikes_mask" in
+  let rates_before = Nx.to_array rates in
   let spikes_before = Nx.to_array spikes in
   let mask_before = Nx.to_array mask in
   let without = call ~rates ~spikes () in
   let with_mask = call ~rates ~spikes ~mask () in
+  check_unchanged_float
+    "co_smoothing masked rates_heldout"
+    rates_before
+    (Nx.to_array rates);
   check_unchanged_float "co_smoothing NaN spikes" spikes_before (Nx.to_array spikes);
   check_unchanged_bool "co_smoothing mask_heldout" mask_before (Nx.to_array mask);
   if relative_error without with_mask > 1e-12
@@ -166,6 +171,7 @@ let () =
   let spikes_2d = create float64 [| 2; 2 |] [| 1.; 0.; 2.; 0. |] in
   let spikes_wrong_neurons = create float64 [| 1; 2; 1 |] [| 1.; 0. |] in
   let mask_wrong_neurons = create bool [| 1; 2; 1 |] [| true; false |] in
+  let inf_spikes = create float64 [| 1; 2; 2 |] [| 1.; 0.; Float.infinity; 0. |] in
   expect_invalid_contains
     "rank"
     [ "Lvm_eval.Bits.co_smoothing"; "rates_heldout"; "[trial;time;neuron]" ]
@@ -176,6 +182,10 @@ let () =
     (fun () -> call ~rates:rates_3d ~spikes:spikes_wrong_neurons ());
   expect_invalid_contains "mask shape" [ "mask_heldout"; "spikes_heldout" ] (fun () ->
     call ~rates:rates_3d ~spikes:spikes_3d ~mask:mask_wrong_neurons ());
+  expect_invalid_contains
+    "inf spikes"
+    [ "Lvm_eval.Bits.co_smoothing"; "spikes_heldout"; "infinity" ]
+    (fun () -> call ~rates:rates_3d ~spikes:inf_spikes ());
   Printf.printf
     "bits: max relative error=%.3e max absolute error (expected zero)=%.3e\n%!"
     !max_relative

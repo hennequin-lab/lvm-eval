@@ -22,7 +22,8 @@ let co_smoothing ~rates_heldout ~spikes_heldout ?mask_heldout () =
   let spikes_valid = Mask.selected valid spikes_heldout in
   let rates_valid = Mask.selected valid rates_heldout in
   let all_finite_spikes = Nx.item [] (Nx.all (Nx.isfinite spikes_valid)) in
-  if not all_finite_spikes then invalid fn "spikes_heldout contains NaN on a scored entry";
+  if not all_finite_spikes
+  then invalid fn "spikes_heldout contains NaN or infinity on a scored entry";
   let all_finite_rates = Nx.item [] (Nx.all (Nx.isfinite rates_valid)) in
   if not all_finite_rates
   then invalid fn "rates_heldout contains NaN or infinity on a scored entry";
