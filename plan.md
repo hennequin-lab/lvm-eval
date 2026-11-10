@@ -666,8 +666,9 @@ pinned dev `.pkg` file to the rule distil documents:
 ```
 
 This is the only permitted lock edit. Review the generated lock diff; do not
-hand-edit it otherwise. The workaround is documented in
-the public `distil` repository's `dune-project` and `README.md`.
+hand-edit it otherwise. A caller that pins `lvm-eval` and generates its own
+`dune.lock` must apply the same workaround to its lock. The workaround is
+documented in the public `distil` repository's `dune-project` and `README.md`.
 
 ### 6.3 User-facing documentation
 

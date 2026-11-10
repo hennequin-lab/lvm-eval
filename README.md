@@ -44,6 +44,11 @@ dev-package workaround are in [`plan.md`](plan.md) §6.
 (libraries lvm-eval)
 ```
 
+After the caller's own `dune pkg lock`, apply the Raven dev-package workaround
+from [`plan.md`](plan.md) §6.2 to the caller's lock. Raven is a monorepo whose
+package-private tests otherwise fail the pinned-dev build; the workaround is
+required for a clean consumer build.
+
 `lvm-eval` never depends on its callers.
 
 ## Status
