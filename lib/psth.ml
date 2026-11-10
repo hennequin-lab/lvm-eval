@@ -24,7 +24,7 @@ let r2 ~rates_eval ~psth ~eval_cond_idx ?jitter () =
   Check.require_host fn "rates_eval" rates_eval;
   Check.require_host fn "psth" psth;
   Check.require_rank3 fn "rates_eval" rates_eval;
-  Check.require_rank3 fn "psth" psth;
+  Check.require_rank3 ~axes:"[condition;time;neuron]" fn "psth" psth;
   let b, t, n =
     match Nx.shape rates_eval with
     | [| b; t; n |] -> b, t, n

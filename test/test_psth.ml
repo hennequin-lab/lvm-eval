@@ -86,6 +86,14 @@ let expect_invalid_contains name fragments f =
       fragments
   | _ -> failwith (name ^ ": expected Invalid_argument")
 
+let check_unchanged_int name before after =
+  if not (Array.equal Int.equal before after)
+  then failwith (name ^ " mutated an integer input")
+
+let check_unchanged_cond name before after =
+  if not (Array.equal (Array.equal Int.equal) before after)
+  then failwith (name ^ " mutated eval_cond_idx")
+
 let relative_error expected got =
   if Float.equal expected 0.
   then Float.abs got
@@ -135,11 +143,30 @@ let () =
   let cond_idx = load_cond_idx "normal" in
   let rates_before = Nx.to_array rates in
   let psth_before = Nx.to_array psth in
+  let cond_before = Array.map Array.copy cond_idx in
   ignore (call ~rates ~psth ~cond_idx ());
   if not (Array.equal Float.equal rates_before (Nx.to_array rates))
   then failwith "Psth.r2 mutated rates_eval";
   if not (Array.equal Float.equal psth_before (Nx.to_array psth))
-  then failwith "Psth.r2 mutated psth"
+  then failwith "Psth.r2 mutated psth";
+  check_unchanged_cond "Psth.r2 eval_cond_idx" cond_before cond_idx
+
+let () =
+  let rates = load_float "jitter_rates" in
+  let psth = load_float "jitter_psth" in
+  let cond_idx = load_cond_idx "jitter" in
+  let jitter = load_jitter "jitter" |> Option.get in
+  let rates_before = Nx.to_array rates in
+  let psth_before = Nx.to_array psth in
+  let cond_before = Array.map Array.copy cond_idx in
+  let jitter_before = Array.copy jitter in
+  ignore (call ~rates ~psth ~cond_idx ~jitter ());
+  if not (Array.equal Float.equal rates_before (Nx.to_array rates))
+  then failwith "Psth.r2 mutated jitter rates_eval";
+  if not (Array.equal Float.equal psth_before (Nx.to_array psth))
+  then failwith "Psth.r2 mutated jitter psth";
+  check_unchanged_cond "Psth.r2 jitter eval_cond_idx" cond_before cond_idx;
+  check_unchanged_int "Psth.r2 jitter" jitter_before jitter
 
 let () =
   let rates = load_float "normal_rates" in
@@ -163,7 +190,7 @@ let () =
     (fun () -> call ~rates:rates_2d ~psth ~cond_idx ());
   expect_invalid_contains
     "psth rank"
-    [ "Lvm_eval.Psth.r2"; "psth"; "[trial;time;neuron]" ]
+    [ "Lvm_eval.Psth.r2"; "psth"; "[condition;time;neuron]" ]
     (fun () -> call ~rates ~psth:psth_2d ~cond_idx ());
   expect_invalid_contains "time" [ "Lvm_eval.Psth.r2"; "time length" ] (fun () ->
     call ~rates:rates_wrong_time ~psth ~cond_idx ());

@@ -307,7 +307,7 @@ def main() -> None:
         f"scikit-learn: {importlib.metadata.version('scikit-learn')}",
         f"h5py: {h5py.__version__}",
         f"nlb_tools_commit: {EXPECTED_NLB_TOOLS_COMMIT}",
-        "reference_note: expected bps are computed on a copy of rates because neg_log_likelihood mutates zero rates in place",
+        "reference_note: expected values are computed on copies of reference inputs where the reference mutates them in place",
         "",
     ]
     meta_lines = common_meta + []

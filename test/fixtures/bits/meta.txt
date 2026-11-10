@@ -7,7 +7,7 @@ scipy: 1.18.1
 scikit-learn: 1.9.1
 h5py: 3.16.0
 nlb_tools_commit: 42f8410b88e12db136910fa2f888b025ea0aa2ae
-reference_note: expected bps are computed on a copy of rates because neg_log_likelihood mutates zero rates in place
+reference_note: expected values are computed on copies of reference inputs where the reference mutates them in place
 
 case normal: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
 case zero_rate: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric

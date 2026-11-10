@@ -11,15 +11,16 @@ let require_rank2 fn arg x =
          arg
          (shape_to_string shape))
 
-let require_rank3 fn arg x =
+let require_rank3 ?(axes = "[trial;time;neuron]") fn arg x =
   match Nx.shape x with
   | [| _; _; _ |] -> ()
   | shape ->
     invalid_arg
       (Printf.sprintf
-         "%s: %s must have shape [trial;time;neuron], got %s"
+         "%s: %s must have shape %s, got %s"
          fn
          arg
+         axes
          (shape_to_string shape))
 
 let require_same_shape fn arg1 arg2 x y =
