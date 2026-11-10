@@ -16,3 +16,10 @@
  (libraries nx nx.io lvm_eval)
  (deps
   (source_tree fixtures)))
+
+(test
+ (name test_dmfc)
+ (modules test_dmfc)
+ (libraries nx nx.io lvm_eval)
+ (deps
+  (source_tree fixtures)))

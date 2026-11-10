@@ -1,5 +1,8 @@
 (** Internal shape, placement, and precondition checks. *)
 
+(** [require_rank1 fn arg x] checks that [x] has rank 1. *)
+val require_rank1 : string -> string -> ('a, 'b) Nx.t -> unit
+
 (** [require_rank2 fn arg x] checks that [x] has rank 2. *)
 val require_rank2 : string -> string -> ('a, 'b) Nx.t -> unit
 

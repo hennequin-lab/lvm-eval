@@ -20,7 +20,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 
-from nlb_tools.evaluation import bits_per_spike, eval_psth
+from nlb_tools.evaluation import bits_per_spike, eval_psth, speed_tp_correlation
 
 EXPECTED_NLB_TOOLS_COMMIT = "42f8410b88e12db136910fa2f888b025ea0aa2ae"
 REFERENCE_ROOT = Path("/home/fh397/projects/_refs/nlb_tools")
@@ -31,6 +31,8 @@ FORWARD_ROOT = REPO_ROOT / "test" / "fixtures" / "forward"
 FORWARD_INPUTS = FORWARD_ROOT / "inputs"
 PSTH_ROOT = REPO_ROOT / "test" / "fixtures" / "psth"
 PSTH_INPUTS = PSTH_ROOT / "inputs"
+DMFC_ROOT = REPO_ROOT / "test" / "fixtures" / "dmfc_code"
+DMFC_INPUTS = DMFC_ROOT / "inputs"
 SEED = 0
 
 # 2 trials x 3 time bins x 2 held-out neurons. All values are synthetic.
@@ -84,6 +86,20 @@ PSTH_TARGET = np.array(
 )
 PSTH_COND_IDX = [np.array([0, 1], dtype=np.int64), np.array([2], dtype=np.int64)]
 PSTH_JITTER = np.array([1, 1, -1], dtype=np.int64)
+
+# 4 eval trials x 5 time bins x 2 neurons. All values are synthetic.
+DMFC_RATES = np.array(
+    [
+        [[0.8, 1.1], [1.2, 0.7], [0.5, 1.5], [1.4, 0.6], [0.9, 1.0]],
+        [[1.3, 0.6], [0.7, 1.2], [1.1, 0.8], [0.4, 1.7], [1.6, 0.5]],
+        [[0.6, 1.4], [1.5, 0.5], [0.3, 1.3], [1.2, 0.9], [0.8, 1.1]],
+        [[1.0, 0.8], [0.9, 1.4], [1.6, 0.7], [0.5, 1.2], [1.3, 0.6]],
+    ],
+    dtype=np.float64,
+)
+DMFC_MASK = np.ones((4, 5), dtype=bool)
+DMFC_CONDITIONS = np.array([0, 0, 1, 1], dtype=np.int64)
+DMFC_TP = np.array([0.1, 0.2, 0.4, 0.3], dtype=np.float64)
 
 
 def _case(name: str, rates: np.ndarray, spikes: np.ndarray, *, mask: np.ndarray | None = None):
@@ -185,6 +201,56 @@ def build_forward_cases():
         )
     )
 
+    return cases
+
+
+def build_dmfc_cases():
+    cases = [
+        {
+            "name": "normal",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "conditions": DMFC_CONDITIONS.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "masked",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "conditions": DMFC_CONDITIONS.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "singleton_condition",
+            "rates": DMFC_RATES[:3].copy(),
+            "mask": DMFC_MASK[:3].copy(),
+            "conditions": np.array([0, 0, 1], dtype=np.int64),
+            "tp": DMFC_TP[:3].copy(),
+            "kind": "error",
+        },
+        {
+            "name": "constant_condition",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "conditions": DMFC_CONDITIONS.copy(),
+            "tp": np.array([0.1, 0.1, 0.3, 0.4], dtype=np.float64),
+            "kind": "error",
+        },
+        {
+            "name": "mask_no_time",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "conditions": DMFC_CONDITIONS.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "error",
+        },
+    ]
+
+    cases[1]["mask"][0, 2] = False
+    cases[1]["mask"][1, 0] = False
+    cases[4]["mask"][0, :] = False
     return cases
 
 
@@ -365,6 +431,42 @@ def main() -> None:
     (FORWARD_ROOT / "expected.txt").write_text("\n".join(forward_expected) + "\n")
     (FORWARD_ROOT / "meta.txt").write_text("\n".join(forward_meta) + "\n")
 
+    DMFC_INPUTS.mkdir(parents=True, exist_ok=True)
+    dmfc_expected = []
+    dmfc_meta = common_meta + []
+    for case in build_dmfc_cases():
+        name = case["name"]
+        rates = case["rates"]
+        mask = case["mask"]
+        conditions = case["conditions"]
+        tp = case["tp"]
+
+        np.save(DMFC_INPUTS / f"{name}_rates.npy", rates)
+        np.save(DMFC_INPUTS / f"{name}_mask.npy", mask)
+        np.save(DMFC_INPUTS / f"{name}_conditions.npy", conditions)
+        np.save(DMFC_INPUTS / f"{name}_tp.npy", tp)
+
+        if case["kind"] == "numeric":
+            b, t, _ = rates.shape
+            spikes = np.zeros((b, t, 1), dtype=np.float64)
+            spikes[~mask] = np.nan
+            behavior = np.zeros((b, 5), dtype=np.float64)
+            behavior[:, 0] = conditions
+            behavior[:, -1] = tp
+            expected = float(speed_tp_correlation(spikes, rates.copy(), behavior))
+            dmfc_expected.append(f"{name} {expected:.17g}")
+        else:
+            dmfc_expected.append(f"{name} error")
+
+        dmfc_meta.append(
+            f"case {name}: rates shape={rates.shape} dtype={rates.dtype}; "
+            f"mask shape={mask.shape} dtype={mask.dtype}; conditions={conditions.tolist()}; "
+            f"tp={tp.tolist()}; expected={'numeric' if case['kind'] == 'numeric' else 'error'}"
+        )
+
+    (DMFC_ROOT / "expected.txt").write_text("\n".join(dmfc_expected) + "\n")
+    (DMFC_ROOT / "meta.txt").write_text("\n".join(dmfc_meta) + "\n")
+
     PSTH_INPUTS.mkdir(parents=True, exist_ok=True)
     psth_expected = []
     psth_meta = common_meta + []
@@ -413,7 +515,8 @@ def main() -> None:
     print(
         f"wrote {len(build_cases())} bits cases to {FIXTURE_ROOT} and "
         f"{len(build_forward_cases())} forward cases to {FORWARD_ROOT} and "
-        f"{len(build_psth_cases())} psth cases to {PSTH_ROOT}"
+        f"{len(build_psth_cases())} psth cases to {PSTH_ROOT} and "
+        f"{len(build_dmfc_cases())} dmfc cases to {DMFC_ROOT}"
     )
 
 

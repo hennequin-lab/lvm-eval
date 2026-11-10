@@ -1,0 +1,5 @@
+normal 1
+masked 1
+singleton_condition error
+constant_condition error
+mask_no_time error

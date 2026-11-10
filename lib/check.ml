@@ -1,5 +1,16 @@
 let shape_to_string shape = Format.asprintf "%a" Nx.pp_shape shape
 
+let require_rank1 fn arg x =
+  match Nx.shape x with
+  | [| _ |] -> ()
+  | shape ->
+    invalid_arg
+      (Printf.sprintf
+         "%s: %s must have shape [trial], got %s"
+         fn
+         arg
+         (shape_to_string shape))
+
 let require_rank2 fn arg x =
   match Nx.shape x with
   | [| _; _ |] -> ()
