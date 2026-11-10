@@ -788,6 +788,7 @@ without the deviations in this table.
 | velocity: constant behaviour dimension | sklearn R² force-finite: 1 if perfect, otherwise 0 (`evaluation.py:329`) | Same force-finite rule | REPRODUCES REFERENCE |
 | velocity: no decode mask | `evaluate` creates one all-True mask (`evaluation.py:125-133`) | Default one all-True column | REPRODUCES REFERENCE |
 | velocity: training samples fewer than `folds` (default 5) | `GridSearchCV`/`KFold` raises (`evaluation.py:324-329`; sklearn default 5-fold) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| bps: infinite rate | No explicit check; `rates - spikes*log(rates)` returns NaN (`evaluation.py:248`) | Clear `Invalid_argument`: rates must be finite | DELIBERATE DEVIATION FROM REFERENCE |
 
 ## 10. Decode masks and PSTH pooling
 
