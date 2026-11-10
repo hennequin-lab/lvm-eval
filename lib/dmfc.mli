@@ -2,8 +2,9 @@
 
     The metric is defined in the NLB'21 paper, section 3.3, with the set-go
     window and jitter details in A.6. The reference is
-    [nlb_tools/evaluation.py:386 speed_tp_correlation]. This module currently
-    implements only the reference per-condition code variant. *)
+    [nlb_tools/evaluation.py:386 speed_tp_correlation]. This module implements
+    the reference per-condition code variant and a documented global reading
+    of the paper; the global variant is not an [nlb_tools] implementation. *)
 
 (** [speed_tp_code ~rates_eval ~mask ~conditions ~tp ()] computes the
     per-condition Pearson r between per-trial neural speed and [tp], then
@@ -31,7 +32,8 @@ val speed_tp_code
 
     This is a documented minimal reading of NLB.pdf §3.3, not an [nlb_tools]
     implementation. It uses the same per-trial speed and set-go mask as
-    {!speed_tp_code}, but ignores condition labels. *)
+    {!speed_tp_code}, but ignores condition labels. [tp] is the produced
+    interval in seconds. *)
 val speed_tp_global
   :  rates_eval:Nx.float64_t
   -> mask:Nx.bool_t

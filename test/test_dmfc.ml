@@ -296,3 +296,29 @@ let () =
     "non-finite tp"
     [ "Lvm_eval.Dmfc.speed_tp_code"; "tp"; "NaN" ]
     (fun () -> call ~rates ~mask ~conditions ~tp:nan_tp ())
+
+let () =
+  let rates = load_global_float "normal_rates" in
+  let mask = load_global_bool "normal_mask" in
+  let tp =
+    Nx_io.load_npy (global_input "normal_tp") |> Nx.unpack Nx.float64 |> Nx.to_array
+  in
+  let rates_2d = create float64 [| 4; 5 |] (Array.make 20 1.) in
+  let mask_3d = create bool [| 4; 5; 1 |] (Array.make 20 true) in
+  let mask_wrong = create bool [| 4; 4 |] (Array.make 16 true) in
+  expect_invalid_contains
+    "global rates rank"
+    [ "Lvm_eval.Dmfc.speed_tp_global"; "rates_eval"; "[trial;time;neuron]" ]
+    (fun () -> call_global ~rates:rates_2d ~mask ~tp ());
+  expect_invalid_contains
+    "global mask rank"
+    [ "Lvm_eval.Dmfc.speed_tp_global"; "mask"; "[trial;time]" ]
+    (fun () -> call_global ~rates ~mask:mask_3d ~tp ());
+  expect_invalid_contains
+    "global mask shape"
+    [ "Lvm_eval.Dmfc.speed_tp_global"; "mask"; "shape" ]
+    (fun () -> call_global ~rates ~mask:mask_wrong ~tp ());
+  expect_invalid_contains
+    "global tp length"
+    [ "Lvm_eval.Dmfc.speed_tp_global"; "tp"; "entries" ]
+    (fun () -> call_global ~rates ~mask ~tp:[| 0.1 |] ())
