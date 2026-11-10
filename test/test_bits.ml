@@ -43,10 +43,45 @@ let call ~rates ~spikes ?mask () =
     ?mask_heldout:mask
     ()
 
+let contains haystack needle =
+  let length = String.length needle in
+  let rec loop index =
+    if index + length > String.length haystack
+    then false
+    else if String.equal (String.sub haystack index length) needle
+    then true
+    else loop (index + 1)
+  in
+  Int.equal length 0 || loop 0
+
 let expect_invalid name f =
   match f () with
   | exception Invalid_argument _ -> ()
   | _ -> failwith (name ^ ": expected Invalid_argument")
+
+let expect_invalid_contains name fragments f =
+  match f () with
+  | exception Invalid_argument message ->
+    List.iter
+      (fun fragment ->
+         if not (contains message fragment)
+         then
+           failwith
+             (Printf.sprintf
+                "%s: error message %S does not name %S"
+                name
+                message
+                fragment))
+      fragments
+  | _ -> failwith (name ^ ": expected Invalid_argument")
+
+let check_unchanged_float name before after =
+  if not (Array.equal Float.equal before after)
+  then failwith (name ^ " mutated a float64 input")
+
+let check_unchanged_bool name before after =
+  if not (Array.equal Bool.equal before after)
+  then failwith (name ^ " mutated a bool input")
 
 let relative_error expected got =
   if Float.equal expected 0.
@@ -84,7 +119,15 @@ let () =
          else None
        in
        if String.equal expected_text "error"
-       then expect_invalid name (fun () -> call ~rates ~spikes ?mask ())
+       then
+         if
+           List.exists
+             (fun error_case -> String.equal name error_case)
+             [ "zero_total_spikes"; "all_false_mask" ]
+         then
+           expect_invalid_contains name [ "no scored spikes" ] (fun () ->
+             call ~rates ~spikes ?mask ())
+         else expect_invalid name (fun () -> call ~rates ~spikes ?mask ())
        else (
          let expected = float_of_string expected_text in
          let got = call ~rates ~spikes ?mask () in
@@ -95,19 +138,23 @@ let () =
   (* The reference mutates zero rates in place; lvm-eval must not. *)
   let rates = load_float "zero_rate_rates" in
   let spikes = load_float "zero_rate_spikes" in
-  let before = Nx.to_array rates in
+  let rates_before = Nx.to_array rates in
+  let spikes_before = Nx.to_array spikes in
   ignore (call ~rates ~spikes ());
-  let after = Nx.to_array rates in
-  if not (Array.equal Float.equal before after)
-  then failwith "co_smoothing mutated rates_heldout"
+  check_unchanged_float "co_smoothing rates_heldout" rates_before (Nx.to_array rates);
+  check_unchanged_float "co_smoothing spikes_heldout" spikes_before (Nx.to_array spikes)
 
 let () =
   (* An explicit mask derived from NaN spikes must agree with the NaN path. *)
   let rates = load_float "nan_spikes_rates" in
   let spikes = load_float "nan_spikes_spikes" in
   let mask = load_bool "nan_spikes_mask" in
+  let spikes_before = Nx.to_array spikes in
+  let mask_before = Nx.to_array mask in
   let without = call ~rates ~spikes () in
   let with_mask = call ~rates ~spikes ~mask () in
+  check_unchanged_float "co_smoothing NaN spikes" spikes_before (Nx.to_array spikes);
+  check_unchanged_bool "co_smoothing mask_heldout" mask_before (Nx.to_array mask);
   if relative_error without with_mask > 1e-12
   then failwith "explicit mask and NaN-spike paths disagree"
 
@@ -119,9 +166,15 @@ let () =
   let spikes_2d = create float64 [| 2; 2 |] [| 1.; 0.; 2.; 0. |] in
   let spikes_wrong_neurons = create float64 [| 1; 2; 1 |] [| 1.; 0. |] in
   let mask_wrong_neurons = create bool [| 1; 2; 1 |] [| true; false |] in
-  expect_invalid "rank" (fun () -> call ~rates:rates_2d ~spikes:spikes_2d ());
-  expect_invalid "shape" (fun () -> call ~rates:rates_3d ~spikes:spikes_wrong_neurons ());
-  expect_invalid "mask shape" (fun () ->
+  expect_invalid_contains
+    "rank"
+    [ "Lvm_eval.Bits.co_smoothing"; "rates_heldout"; "[trial;time;neuron]" ]
+    (fun () -> call ~rates:rates_2d ~spikes:spikes_2d ());
+  expect_invalid_contains
+    "shape"
+    [ "Lvm_eval.Bits.co_smoothing"; "rates_heldout"; "spikes_heldout" ]
+    (fun () -> call ~rates:rates_3d ~spikes:spikes_wrong_neurons ());
+  expect_invalid_contains "mask shape" [ "mask_heldout"; "spikes_heldout" ] (fun () ->
     call ~rates:rates_3d ~spikes:spikes_3d ~mask:mask_wrong_neurons ());
   Printf.printf
     "bits: max relative error=%.3e max absolute error (expected zero)=%.3e\n%!"

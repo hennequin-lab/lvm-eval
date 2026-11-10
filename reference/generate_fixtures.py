@@ -7,6 +7,10 @@ not read distil data, LFS data, or any real neural array.
 
 from __future__ import annotations
 
+import sys
+
+sys.dont_write_bytecode = True
+
 import importlib.metadata
 import platform
 import subprocess
@@ -57,6 +61,7 @@ ERROR_CASES = {
     "negative_spikes",
     "non_integer_spikes",
     "all_false_mask",
+    "inf_rate",
 }
 
 
@@ -81,6 +86,17 @@ def build_cases():
         _case("zero_spike_neuron", NORMAL_RATES.copy(), zero_neuron_spikes)
     )
 
+    all_nan_neuron_spikes = NORMAL_SPIKES.copy()
+    all_nan_neuron_spikes[:, :, 0] = np.nan
+    cases.append(
+        _case("all_nan_neuron", NORMAL_RATES.copy(), all_nan_neuron_spikes)
+    )
+
+    mean_rate = np.broadcast_to(
+        np.mean(NORMAL_SPIKES, axis=(0, 1), keepdims=True), NORMAL_SPIKES.shape
+    ).copy()
+    cases.append(_case("mean_rate", mean_rate, NORMAL_SPIKES.copy()))
+
     cases.append(
         _case("zero_total_spikes", NORMAL_RATES.copy(), np.zeros_like(NORMAL_SPIKES))
     )
@@ -92,6 +108,10 @@ def build_cases():
     negative_spikes = NORMAL_SPIKES.copy()
     negative_spikes[0, 0, 0] = -1.0
     cases.append(_case("negative_spikes", NORMAL_RATES.copy(), negative_spikes))
+
+    inf_rate = NORMAL_RATES.copy()
+    inf_rate[0, 0, 0] = np.inf
+    cases.append(_case("inf_rate", inf_rate, NORMAL_SPIKES.copy()))
 
     non_integer_spikes = NORMAL_SPIKES.copy()
     non_integer_spikes[0, 0, 0] = 1.5
@@ -166,6 +186,12 @@ def main() -> None:
 
     (FIXTURE_ROOT / "expected.txt").write_text("\n".join(expected_lines) + "\n")
     (FIXTURE_ROOT / "meta.txt").write_text("\n".join(meta_lines) + "\n")
+
+    status_after = subprocess.check_output(
+        ["git", "-C", str(REFERENCE_ROOT), "status", "--porcelain"], text=True
+    )
+    if status_after.strip():
+        raise SystemExit(f"nlb_tools changed during generation:\n{status_after}")
 
     print(f"wrote {len(build_cases())} cases to {FIXTURE_ROOT}")
 

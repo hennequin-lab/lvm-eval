@@ -13,8 +13,11 @@ case normal: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=f
 case zero_rate: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
 case nan_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=(2, 3, 2) bool; expected=numeric
 case zero_spike_neuron: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
+case all_nan_neuron: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
+case mean_rate: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=numeric
 case zero_total_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
 case negative_rate: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
 case negative_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
+case inf_rate: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
 case non_integer_spikes: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=none; expected=error
 case all_false_mask: rates shape=(2, 3, 2) dtype=float64; spikes shape=(2, 3, 2) dtype=float64; mask=(2, 3, 2) bool; expected=error

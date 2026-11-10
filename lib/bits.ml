@@ -19,8 +19,6 @@ let co_smoothing ~rates_heldout ~spikes_heldout ?mask_heldout () =
     mask_heldout;
   let valid = Mask.valid ~fn ?mask:mask_heldout spikes_heldout in
   let counts = Mask.count_per_neuron valid in
-  let all_counted = Nx.item [] (Nx.all (Nx.greater counts (Nx.scalar Nx.float64 0.))) in
-  if not all_counted then invalid fn "every neuron must have at least one scored entry";
   let spikes_valid = Mask.selected valid spikes_heldout in
   let rates_valid = Mask.selected valid rates_heldout in
   let all_finite_spikes = Nx.item [] (Nx.all (Nx.isfinite spikes_valid)) in
@@ -38,7 +36,10 @@ let co_smoothing ~rates_heldout ~spikes_heldout ?mask_heldout () =
   if Nx.item [] (Nx.less_equal_s n_sp 0.)
   then invalid fn "no scored spikes (zero total spikes)";
   let rates_floor = Numeric.floor_zero_rates rates_valid in
-  let null_rates = Nx.Infix.(Mask.sum_per_neuron valid spikes_heldout / counts) in
+  let safe_counts =
+    Nx.where (Nx.greater counts (Nx.scalar Nx.float64 0.)) counts (Nx.ones_like counts)
+  in
+  let null_rates = Nx.Infix.(Mask.sum_per_neuron valid spikes_heldout / safe_counts) in
   let null_rates = Numeric.floor_zero_rates null_rates in
   let n = (Nx.shape spikes_heldout).(2) in
   let null_rates =

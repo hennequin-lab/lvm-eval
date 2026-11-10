@@ -2,8 +2,11 @@ normal 0.36580611893689935
 zero_rate -1.8204453216654406
 nan_spikes 0.31777040138217366
 zero_spike_neuron -1.1336893919045119
+all_nan_neuron 0.24961280403114031
+mean_rate 0
 zero_total_spikes error
 negative_rate error
 negative_spikes error
+inf_rate error
 non_integer_spikes error
 all_false_mask error
