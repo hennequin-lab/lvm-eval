@@ -792,6 +792,7 @@ without the deviations in this table.
 | velocity: NaN in non-first behaviour column | After mask selection and trial-major flatten, drops samples only by column 0 (`evaluation.py:314-319`); Ridge then fails on NaN target | Selects mask trials, flattens trial-major, drops first-column NaN samples, then raises if any retained value is non-finite | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of estimator failure) |
 | velocity: all-NaN train behaviour rows | Drops all train rows; Ridge fails (`evaluation.py:314-319`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | velocity: all-NaN eval behaviour rows | Drops all eval rows; `r2_score` raises on zero samples (`evaluation.py:329`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| velocity: fewer than two retained eval samples | `r2_score` returns NaN for one eval sample (`evaluation.py:329`) | Clear error: R² needs at least two rows | DELIBERATE DEVIATION FROM REFERENCE |
 | velocity: constant behaviour dimension | sklearn R² force-finite: 1 if perfect, otherwise 0 (`evaluation.py:329`) | Same force-finite rule | REPRODUCES REFERENCE |
 | velocity: no decode mask | `evaluate` creates one all-True mask (`evaluation.py:125-133`) | Default one all-True column | REPRODUCES REFERENCE |
 | velocity: training samples fewer than two per fold (`2 * folds`) | `KFold` allows `n = folds`, but one-row validation R² is NaN (`evaluation.py:324-329`; sklearn default 5-fold) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |

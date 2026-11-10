@@ -7,3 +7,4 @@ nan_nonfirst error
 all_nan_behavior error
 few_samples error
 all_nan_eval error
+one_eval_sample error

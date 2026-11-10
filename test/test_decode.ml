@@ -171,6 +171,20 @@ let () =
                   ~train_mask
                   ~eval_mask
                   ())
+         else if String.equal name "one_eval_sample"
+         then
+           expect_invalid_contains
+             name
+             [ "Lvm_eval.R2.score"; "at least two rows" ]
+             (fun () ->
+                call
+                  ~train_rates
+                  ~train_behavior
+                  ~eval_rates
+                  ~eval_behavior
+                  ~train_mask
+                  ~eval_mask
+                  ())
          else
            expect_invalid name (fun () ->
              call

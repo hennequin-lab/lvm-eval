@@ -21,8 +21,10 @@
     default is 5 folds. R² is computed per behaviour dimension and averaged,
     then averaged across mask columns.
 
-    There is no feature standardization and no decoding lag inside this
-    function. *)
+    After dropping, each mask column must retain at least two training samples
+    per fold and at least two eval samples; a zero or one-row side raises
+    [Invalid_argument]. There is no feature standardization and no decoding lag
+    inside this function. *)
 val velocity_decoding
   :  rates_train:Nx.float64_t
   -> behaviour_train:Nx.float64_t

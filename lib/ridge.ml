@@ -53,13 +53,16 @@ let fit ~x ~y ~alpha =
   and yc = Nx.Infix.(y - y_mean) in
   let gram = Nx.Infix.(Nx.matmul (Nx.transpose xc) xc + (Nx.eye Nx.float64 d *$ alpha)) in
   let rhs = Nx.matmul (Nx.transpose xc) yc in
-  let factor = Nx.cholesky gram in
+  let factor =
+    try Some (Nx.cholesky gram) with
+    | Invalid_argument _ -> None
+  in
   let coef =
-    if Nx.item [] (Nx.all (Nx.isfinite factor))
-    then (
+    match factor with
+    | Some factor when Nx.item [] (Nx.all (Nx.isfinite factor)) ->
       let forward = Nx.solve_triangular ~upper:false factor rhs in
-      Nx.solve_triangular ~upper:true (Nx.transpose factor) forward)
-    else svd_solve ~x:xc ~y:yc ~alpha
+      Nx.solve_triangular ~upper:true (Nx.transpose factor) forward
+    | _ -> svd_solve ~x:xc ~y:yc ~alpha
   in
   { x_mean; y_mean; coef }
 
