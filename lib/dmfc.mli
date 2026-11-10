@@ -25,3 +25,16 @@ val speed_tp_code
   -> tp:float array
   -> unit
   -> float
+
+(** [speed_tp_global ~rates_eval ~mask ~tp ()] computes one Pearson r across
+    all eval trials between per-trial neural speed and [tp].
+
+    This is a documented minimal reading of NLB.pdf §3.3, not an [nlb_tools]
+    implementation. It uses the same per-trial speed and set-go mask as
+    {!speed_tp_code}, but ignores condition labels. *)
+val speed_tp_global
+  :  rates_eval:Nx.float64_t
+  -> mask:Nx.bool_t
+  -> tp:float array
+  -> unit
+  -> float

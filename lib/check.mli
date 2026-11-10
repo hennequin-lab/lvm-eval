@@ -3,8 +3,9 @@
 (** [require_rank1 fn arg x] checks that [x] has rank 1. *)
 val require_rank1 : string -> string -> ('a, 'b) Nx.t -> unit
 
-(** [require_rank2 fn arg x] checks that [x] has rank 2. *)
-val require_rank2 : string -> string -> ('a, 'b) Nx.t -> unit
+(** [require_rank2 ?axes fn arg x] checks that [x] has rank 2 and names the
+    expected axes in errors. *)
+val require_rank2 : ?axes:string -> string -> string -> ('a, 'b) Nx.t -> unit
 
 (** [require_rank3 ?axes fn arg x] checks that [x] has rank 3 and names the
     expected axes in errors. *)

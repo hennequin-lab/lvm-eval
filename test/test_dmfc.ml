@@ -163,7 +163,7 @@ let () =
     (fun () -> call ~rates:rates_2d ~mask ~conditions ~tp ());
   expect_invalid_contains
     "mask rank"
-    [ "Lvm_eval.Dmfc.speed_tp_code"; "mask"; "[row;neuron]" ]
+    [ "Lvm_eval.Dmfc.speed_tp_code"; "mask"; "[trial;time]" ]
     (fun () -> call ~rates ~mask:mask_3d ~conditions ~tp ());
   expect_invalid_contains
     "mask shape"
@@ -183,3 +183,116 @@ let () =
     (fun () ->
        let zero_mask = create bool [| 4; 5 |] (Array.make 20 false) in
        call ~rates ~mask:zero_mask ~conditions ~tp ())
+
+let global_dir = Filename.concat root "test/fixtures/dmfc_global"
+let global_input name = Filename.concat global_dir ("inputs/" ^ name ^ ".npy")
+let load_global_float name = Nx_io.load_npy (global_input name) |> Nx.unpack Nx.float64
+let load_global_bool name = Nx_io.load_npy (global_input name) |> Nx.unpack Nx.bool
+
+let global_expected_cases =
+  read_lines (Filename.concat global_dir "expected.txt")
+  |> List.map (fun line ->
+    match words line with
+    | [ name; expected ] -> name, expected
+    | _ -> failwith ("test_dmfc: malformed global expected line: " ^ line))
+
+let call_global ~rates ~mask ~tp () =
+  Lvm_eval.Dmfc.speed_tp_global ~rates_eval:rates ~mask ~tp ()
+
+let () =
+  List.iter
+    (fun (name, expected_text) ->
+       let rates = load_global_float (name ^ "_rates") in
+       let mask = load_global_bool (name ^ "_mask") in
+       let tp =
+         Nx_io.load_npy (global_input (name ^ "_tp"))
+         |> Nx.unpack Nx.float64
+         |> Nx.to_array
+       in
+       if String.equal expected_text "error"
+       then
+         if String.equal name "singleton"
+         then
+           expect_invalid_contains
+             ("global." ^ name)
+             [ "Lvm_eval.Dmfc.speed_tp_global"; "speed"; "two samples" ]
+             (fun () -> call_global ~rates ~mask ~tp ())
+         else if String.equal name "constant"
+         then
+           expect_invalid_contains
+             ("global." ^ name)
+             [ "Lvm_eval.Dmfc.speed_tp_global"; "constant" ]
+             (fun () -> call_global ~rates ~mask ~tp ())
+         else if String.equal name "mask_no_time"
+         then
+           expect_invalid_contains
+             ("global." ^ name)
+             [ "Lvm_eval.Dmfc.speed_tp_global"; "mask"; "time point" ]
+             (fun () -> call_global ~rates ~mask ~tp ())
+         else if String.equal name "one_time"
+         then
+           expect_invalid_contains
+             ("global." ^ name)
+             [ "Lvm_eval.Dmfc.speed_tp_global"; "speed"; "NaN" ]
+             (fun () -> call_global ~rates ~mask ~tp ())
+         else if String.equal name "nan_tp"
+         then
+           expect_invalid_contains
+             ("global." ^ name)
+             [ "Lvm_eval.Dmfc.speed_tp_global"; "tp"; "NaN" ]
+             (fun () -> call_global ~rates ~mask ~tp ())
+         else
+           expect_invalid_contains
+             ("global." ^ name)
+             [ "Lvm_eval.Dmfc.speed_tp_global"; "speed"; "NaN" ]
+             (fun () -> call_global ~rates ~mask ~tp ())
+       else (
+         let expected = float_of_string expected_text in
+         let got = call_global ~rates ~mask ~tp () in
+         check_value ("global." ^ name) expected got))
+    global_expected_cases
+
+let () =
+  let rates = load_global_float "normal_rates" in
+  let mask = load_global_bool "normal_mask" in
+  let tp =
+    Nx_io.load_npy (global_input "normal_tp") |> Nx.unpack Nx.float64 |> Nx.to_array
+  in
+  let rates_before = Nx.to_array rates in
+  let mask_before = Nx.to_array mask in
+  let tp_before = Array.copy tp in
+  ignore (call_global ~rates ~mask ~tp ());
+  if not (Array.equal Float.equal rates_before (Nx.to_array rates))
+  then failwith "Dmfc.speed_tp_global mutated rates_eval";
+  if not (Array.equal Bool.equal mask_before (Nx.to_array mask))
+  then failwith "Dmfc.speed_tp_global mutated mask";
+  if not (Array.equal Float.equal tp_before tp)
+  then failwith "Dmfc.speed_tp_global mutated tp"
+
+let () =
+  let rates = load_float "normal_rates" in
+  let mask = load_bool "normal_mask" in
+  let conditions = load_int "normal_conditions" in
+  let tp = Nx_io.load_npy (input "normal_tp") |> Nx.unpack Nx.float64 |> Nx.to_array in
+  let one_time = Array.make 20 true in
+  for time = 1 to 4 do
+    one_time.(time) <- false
+  done;
+  let one_time_mask = create bool [| 4; 5 |] one_time in
+  expect_invalid_contains
+    "one selected time"
+    [ "Lvm_eval.Dmfc.speed_tp_code"; "speed"; "NaN" ]
+    (fun () -> call ~rates ~mask:one_time_mask ~conditions ~tp ());
+  let nan_rates = Nx.to_array rates in
+  nan_rates.(0) <- Float.nan;
+  let nan_rates = create float64 (Nx.shape rates) nan_rates in
+  expect_invalid_contains
+    "non-finite rates"
+    [ "Lvm_eval.Dmfc.speed_tp_code"; "speed"; "NaN" ]
+    (fun () -> call ~rates:nan_rates ~mask ~conditions ~tp ());
+  let nan_tp = Array.copy tp in
+  nan_tp.(0) <- Float.nan;
+  expect_invalid_contains
+    "non-finite tp"
+    [ "Lvm_eval.Dmfc.speed_tp_code"; "tp"; "NaN" ]
+    (fun () -> call ~rates ~mask ~conditions ~tp:nan_tp ())

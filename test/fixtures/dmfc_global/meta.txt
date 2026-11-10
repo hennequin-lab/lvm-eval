@@ -1,0 +1,19 @@
+generator: reference/generate_fixtures.py
+fixture_kind: synthetic
+seed: 0
+python: 3.13.5
+numpy: 2.5.4
+scipy: 1.18.1
+scikit-learn: 1.9.1
+h5py: 3.16.0
+nlb_tools_commit: 42f8410b88e12db136910fa2f888b025ea0aa2ae
+reference_note: expected values are computed on copies of reference inputs where the reference mutates them in place
+
+case normal: rates shape=(4, 5, 2) dtype=float64; mask shape=(4, 5) dtype=bool; tp=[0.1, 0.2, 0.4, 0.3]; expected=numeric
+case masked: rates shape=(4, 5, 2) dtype=float64; mask shape=(4, 5) dtype=bool; tp=[0.1, 0.2, 0.4, 0.3]; expected=numeric
+case singleton: rates shape=(1, 5, 2) dtype=float64; mask shape=(1, 5) dtype=bool; tp=[0.1]; expected=error
+case constant: rates shape=(4, 5, 2) dtype=float64; mask shape=(4, 5) dtype=bool; tp=[0.2, 0.2, 0.2, 0.2]; expected=error
+case mask_no_time: rates shape=(4, 5, 2) dtype=float64; mask shape=(4, 5) dtype=bool; tp=[0.1, 0.2, 0.4, 0.3]; expected=error
+case one_time: rates shape=(4, 5, 2) dtype=float64; mask shape=(4, 5) dtype=bool; tp=[0.1, 0.2, 0.4, 0.3]; expected=error
+case nan_tp: rates shape=(4, 5, 2) dtype=float64; mask shape=(4, 5) dtype=bool; tp=[nan, 0.2, 0.4, 0.3]; expected=error
+case nan_rate: rates shape=(4, 5, 2) dtype=float64; mask shape=(4, 5) dtype=bool; tp=[0.1, 0.2, 0.4, 0.3]; expected=error

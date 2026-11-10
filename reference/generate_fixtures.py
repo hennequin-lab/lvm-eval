@@ -19,6 +19,7 @@ from pathlib import Path
 
 import h5py
 import numpy as np
+from scipy.stats import pearsonr
 
 from nlb_tools.evaluation import bits_per_spike, eval_psth, speed_tp_correlation
 
@@ -33,6 +34,8 @@ PSTH_ROOT = REPO_ROOT / "test" / "fixtures" / "psth"
 PSTH_INPUTS = PSTH_ROOT / "inputs"
 DMFC_ROOT = REPO_ROOT / "test" / "fixtures" / "dmfc_code"
 DMFC_INPUTS = DMFC_ROOT / "inputs"
+DMFC_GLOBAL_ROOT = REPO_ROOT / "test" / "fixtures" / "dmfc_global"
+DMFC_GLOBAL_INPUTS = DMFC_GLOBAL_ROOT / "inputs"
 SEED = 0
 
 # 2 trials x 3 time bins x 2 held-out neurons. All values are synthetic.
@@ -254,6 +257,84 @@ def build_dmfc_cases():
     return cases
 
 
+def _speed_global(rates, mask, tp):
+    speeds = []
+    for trial in range(rates.shape[0]):
+        selected = rates[trial][mask[trial]]
+        speeds.append(np.mean(np.linalg.norm(np.diff(selected, axis=0), axis=1)))
+    return float(pearsonr(np.array(speeds), tp).statistic)
+
+
+def build_dmfc_global_cases():
+    cases = [
+        {
+            "name": "normal",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "masked",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "singleton",
+            "rates": DMFC_RATES[:1].copy(),
+            "mask": DMFC_MASK[:1].copy(),
+            "tp": DMFC_TP[:1].copy(),
+            "kind": "error",
+        },
+        {
+            "name": "constant",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "tp": np.full(4, 0.2, dtype=np.float64),
+            "kind": "error",
+        },
+        {
+            "name": "mask_no_time",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "error",
+        },
+        {
+            "name": "one_time",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "error",
+        },
+        {
+            "name": "nan_tp",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "error",
+        },
+        {
+            "name": "nan_rate",
+            "rates": DMFC_RATES.copy(),
+            "mask": DMFC_MASK.copy(),
+            "tp": DMFC_TP.copy(),
+            "kind": "error",
+        },
+    ]
+
+    cases[1]["mask"][0, 2] = False
+    cases[1]["mask"][1, 0] = False
+    cases[4]["mask"][0, :] = False
+    cases[5]["mask"][0, :] = False
+    cases[5]["mask"][0, 0] = True
+    cases[6]["tp"][0] = np.nan
+    cases[7]["rates"][0, 0, 0] = np.nan
+    return cases
+
+
 def build_psth_cases():
     cases = []
 
@@ -467,6 +548,36 @@ def main() -> None:
     (DMFC_ROOT / "expected.txt").write_text("\n".join(dmfc_expected) + "\n")
     (DMFC_ROOT / "meta.txt").write_text("\n".join(dmfc_meta) + "\n")
 
+    DMFC_GLOBAL_INPUTS.mkdir(parents=True, exist_ok=True)
+    dmfc_global_expected = []
+    dmfc_global_meta = common_meta + []
+    for case in build_dmfc_global_cases():
+        name = case["name"]
+        rates = case["rates"]
+        mask = case["mask"]
+        tp = case["tp"]
+
+        np.save(DMFC_GLOBAL_INPUTS / f"{name}_rates.npy", rates)
+        np.save(DMFC_GLOBAL_INPUTS / f"{name}_mask.npy", mask)
+        np.save(DMFC_GLOBAL_INPUTS / f"{name}_tp.npy", tp)
+
+        if case["kind"] == "numeric":
+            expected = _speed_global(rates.copy(), mask.copy(), tp.copy())
+            dmfc_global_expected.append(f"{name} {expected:.17g}")
+        else:
+            dmfc_global_expected.append(f"{name} error")
+
+        dmfc_global_meta.append(
+            f"case {name}: rates shape={rates.shape} dtype={rates.dtype}; "
+            f"mask shape={mask.shape} dtype={mask.dtype}; tp={tp.tolist()}; "
+            f"expected={'numeric' if case['kind'] == 'numeric' else 'error'}"
+        )
+
+    (DMFC_GLOBAL_ROOT / "expected.txt").write_text(
+        "\n".join(dmfc_global_expected) + "\n"
+    )
+    (DMFC_GLOBAL_ROOT / "meta.txt").write_text("\n".join(dmfc_global_meta) + "\n")
+
     PSTH_INPUTS.mkdir(parents=True, exist_ok=True)
     psth_expected = []
     psth_meta = common_meta + []
@@ -516,7 +627,8 @@ def main() -> None:
         f"wrote {len(build_cases())} bits cases to {FIXTURE_ROOT} and "
         f"{len(build_forward_cases())} forward cases to {FORWARD_ROOT} and "
         f"{len(build_psth_cases())} psth cases to {PSTH_ROOT} and "
-        f"{len(build_dmfc_cases())} dmfc cases to {DMFC_ROOT}"
+        f"{len(build_dmfc_cases())} dmfc cases to {DMFC_ROOT} and "
+        f"{len(build_dmfc_global_cases())} dmfc global cases to {DMFC_GLOBAL_ROOT}"
     )
 
 
