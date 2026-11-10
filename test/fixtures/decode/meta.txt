@@ -1,0 +1,19 @@
+generator: reference/generate_fixtures.py
+fixture_kind: synthetic
+seed: 0
+python: 3.13.5
+numpy: 2.5.4
+scipy: 1.18.1
+scikit-learn: 1.9.1
+h5py: 3.16.0
+nlb_tools_commit: 42f8410b88e12db136910fa2f888b025ea0aa2ae
+reference_note: expected values are computed on copies of reference inputs where the reference mutates them in place
+
+case normal: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=numeric
+case multimask: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 2); eval_mask shape=(4, 2); expected=numeric
+case nan_behavior: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=numeric
+case constant_behavior: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=numeric
+case empty_mask: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=error
+case nan_nonfirst: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=error
+case all_nan_behavior: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=error
+case few_samples: train_rates shape=(1, 2, 4); train_behavior shape=(1, 2, 2); eval_rates shape=(1, 2, 4); eval_behavior shape=(1, 2, 2); train_mask shape=(1, 1); eval_mask shape=(1, 1); expected=error

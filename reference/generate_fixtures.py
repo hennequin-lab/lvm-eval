@@ -21,7 +21,7 @@ import h5py
 import numpy as np
 from scipy.stats import pearsonr
 
-from nlb_tools.evaluation import bits_per_spike, eval_psth, speed_tp_correlation
+from nlb_tools.evaluation import bits_per_spike, eval_psth, speed_tp_correlation, velocity_decoding
 
 EXPECTED_NLB_TOOLS_COMMIT = "42f8410b88e12db136910fa2f888b025ea0aa2ae"
 REFERENCE_ROOT = Path("/home/fh397/projects/_refs/nlb_tools")
@@ -36,6 +36,8 @@ DMFC_ROOT = REPO_ROOT / "test" / "fixtures" / "dmfc_code"
 DMFC_INPUTS = DMFC_ROOT / "inputs"
 DMFC_GLOBAL_ROOT = REPO_ROOT / "test" / "fixtures" / "dmfc_global"
 DMFC_GLOBAL_INPUTS = DMFC_GLOBAL_ROOT / "inputs"
+DECODE_ROOT = REPO_ROOT / "test" / "fixtures" / "decode"
+DECODE_INPUTS = DECODE_ROOT / "inputs"
 SEED = 0
 
 # 2 trials x 3 time bins x 2 held-out neurons. All values are synthetic.
@@ -335,6 +337,125 @@ def build_dmfc_global_cases():
     return cases
 
 
+def build_decode_cases():
+    rng = np.random.default_rng(SEED)
+    train_rates = rng.normal(size=(8, 5, 4))
+    train_behavior = np.stack(
+        [
+            (2.0 * train_rates[:, :, 0]) + (0.5 * train_rates[:, :, 1]),
+            (-1.0 * train_rates[:, :, 2]) + (0.3 * train_rates[:, :, 3]),
+        ],
+        axis=-1,
+    )
+    eval_rates = rng.normal(size=(4, 5, 4))
+    eval_behavior = np.stack(
+        [
+            (2.0 * eval_rates[:, :, 0]) + (0.5 * eval_rates[:, :, 1]),
+            (-1.0 * eval_rates[:, :, 2]) + (0.3 * eval_rates[:, :, 3]),
+        ],
+        axis=-1,
+    )
+    train_all = np.ones((8, 1), dtype=bool)
+    eval_all = np.ones((4, 1), dtype=bool)
+    train_split = np.stack(
+        [np.arange(8) % 2 == 0, np.arange(8) % 2 == 1], axis=1
+    )
+    eval_split = np.stack(
+        [np.arange(4) % 2 == 0, np.arange(4) % 2 == 1], axis=1
+    )
+
+    cases = [
+        {
+            "name": "normal",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": train_all.copy(),
+            "eval_mask": eval_all.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "multimask",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": train_split.copy(),
+            "eval_mask": eval_split.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "nan_behavior",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": train_all.copy(),
+            "eval_mask": eval_all.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "constant_behavior",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": train_all.copy(),
+            "eval_mask": eval_all.copy(),
+            "kind": "numeric",
+        },
+        {
+            "name": "empty_mask",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": np.zeros((8, 1), dtype=bool),
+            "eval_mask": eval_all.copy(),
+            "kind": "error",
+        },
+        {
+            "name": "nan_nonfirst",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": train_all.copy(),
+            "eval_mask": eval_all.copy(),
+            "kind": "error",
+        },
+        {
+            "name": "all_nan_behavior",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": train_all.copy(),
+            "eval_mask": eval_all.copy(),
+            "kind": "error",
+        },
+        {
+            "name": "few_samples",
+            "train_rates": train_rates[:1, :2].copy(),
+            "train_behavior": train_behavior[:1, :2].copy(),
+            "eval_rates": eval_rates[:1, :2].copy(),
+            "eval_behavior": eval_behavior[:1, :2].copy(),
+            "train_mask": np.ones((1, 1), dtype=bool),
+            "eval_mask": np.ones((1, 1), dtype=bool),
+            "kind": "error",
+        },
+    ]
+
+    cases[2]["train_behavior"][0, 0, 0] = np.nan
+    cases[2]["eval_behavior"][0, 0, 0] = np.nan
+    cases[3]["train_behavior"][:, :, 1] = 2.0
+    cases[3]["eval_behavior"][:, :, 1] = 2.0
+    cases[5]["train_behavior"][0, 0, 1] = np.nan
+    cases[6]["train_behavior"][:, :, 0] = np.nan
+    return cases
+
+
 def build_psth_cases():
     cases = []
 
@@ -578,6 +699,46 @@ def main() -> None:
     )
     (DMFC_GLOBAL_ROOT / "meta.txt").write_text("\n".join(dmfc_global_meta) + "\n")
 
+    DECODE_INPUTS.mkdir(parents=True, exist_ok=True)
+    decode_expected = []
+    decode_meta = common_meta + []
+    for case in build_decode_cases():
+        name = case["name"]
+        np.save(DECODE_INPUTS / f"{name}_train_rates.npy", case["train_rates"])
+        np.save(DECODE_INPUTS / f"{name}_train_behavior.npy", case["train_behavior"])
+        np.save(DECODE_INPUTS / f"{name}_eval_rates.npy", case["eval_rates"])
+        np.save(DECODE_INPUTS / f"{name}_eval_behavior.npy", case["eval_behavior"])
+        np.save(DECODE_INPUTS / f"{name}_train_mask.npy", case["train_mask"])
+        np.save(DECODE_INPUTS / f"{name}_eval_mask.npy", case["eval_mask"])
+
+        if case["kind"] == "numeric":
+            expected = float(
+                velocity_decoding(
+                    case["train_rates"].copy(),
+                    case["train_behavior"].copy(),
+                    case["train_mask"].copy(),
+                    case["eval_rates"].copy(),
+                    case["eval_behavior"].copy(),
+                    case["eval_mask"].copy(),
+                )
+            )
+            decode_expected.append(f"{name} {expected:.17g}")
+        else:
+            decode_expected.append(f"{name} error")
+
+        decode_meta.append(
+            f"case {name}: train_rates shape={case['train_rates'].shape}; "
+            f"train_behavior shape={case['train_behavior'].shape}; "
+            f"eval_rates shape={case['eval_rates'].shape}; "
+            f"eval_behavior shape={case['eval_behavior'].shape}; "
+            f"train_mask shape={case['train_mask'].shape}; "
+            f"eval_mask shape={case['eval_mask'].shape}; "
+            f"expected={'numeric' if case['kind'] == 'numeric' else 'error'}"
+        )
+
+    (DECODE_ROOT / "expected.txt").write_text("\n".join(decode_expected) + "\n")
+    (DECODE_ROOT / "meta.txt").write_text("\n".join(decode_meta) + "\n")
+
     PSTH_INPUTS.mkdir(parents=True, exist_ok=True)
     psth_expected = []
     psth_meta = common_meta + []
@@ -628,7 +789,8 @@ def main() -> None:
         f"{len(build_forward_cases())} forward cases to {FORWARD_ROOT} and "
         f"{len(build_psth_cases())} psth cases to {PSTH_ROOT} and "
         f"{len(build_dmfc_cases())} dmfc cases to {DMFC_ROOT} and "
-        f"{len(build_dmfc_global_cases())} dmfc global cases to {DMFC_GLOBAL_ROOT}"
+        f"{len(build_dmfc_global_cases())} dmfc global cases to {DMFC_GLOBAL_ROOT} and "
+        f"{len(build_decode_cases())} decode cases to {DECODE_ROOT}"
     )
 
 

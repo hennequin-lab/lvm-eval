@@ -23,3 +23,10 @@
  (libraries nx nx.io lvm_eval)
  (deps
   (source_tree fixtures)))
+
+(test
+ (name test_decode)
+ (modules test_decode)
+ (libraries nx nx.io lvm_eval)
+ (deps
+  (source_tree fixtures)))

@@ -1,0 +1,8 @@
+normal 0.99999999998978073
+multimask 0.9999999999359992
+nan_behavior 0.99999999998971845
+constant_behavior 0.99999999999472833
+empty_mask error
+nan_nonfirst error
+all_nan_behavior error
+few_samples error
