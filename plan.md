@@ -1,6 +1,6 @@
 # lvm-eval implementation plan
 
-Status: approved design, no implementation yet. This plan is the source of
+Status: first release implemented; phase-5 review complete. This plan is the source of
 truth for the first release. `README.md` is the short user-facing summary and
 `docs/nlb-protocol.md` is the dataset-value reference. If this plan and an
 older README proposal disagree, this plan wins.
@@ -67,7 +67,7 @@ Callers depend on `lvm-eval`; the direction is one-way.
 or dataset configuration. It has no file I/O, no global state, and no model
 types. Callers own all data preparation.
 
-### 2.2 Planned library layout
+### 2.2 Library layout
 
 ```text
 lib/
@@ -118,8 +118,8 @@ modules only.
 
 ## 3. Public API sketch
 
-The signatures below are the intended public interface. They are illustrative
-of the plan, not existing code.
+The signatures below are the public interface implemented in `lib/` and kept in
+sync with the plan.
 
 ```ocaml
 module Bits : sig
@@ -612,7 +612,7 @@ diagnostic with a different decoder protocol.
 ### 6.1 Pin
 
 `lvm-eval` uses Dune package management, not opam, mirroring
-`/home/fh397/projects/distil/dune-project:25-41`. The planned pin is:
+`/home/fh397/projects/distil/dune-project:25-41`. The pin is:
 
 ```text
 (pin
@@ -624,7 +624,7 @@ diagnostic with a different decoder protocol.
 `cmdargs` is pinned only as the Dune recursive-pin anchor. `lvm-eval` does
 not link or depend on `cmdargs`; it depends on Raven `nx`. A throwaway project
 in `/tmp` confirmed that pinning `cmdargs` and depending only on `nx`/`rune`
-resolves Raven at murder’s commit. The planned Dune package and public library are `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC (matching murder and distil).
+resolves Raven at murder’s commit. The Dune package and public library are `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC (matching murder and distil).
 The package depends on:
 
 ```text
@@ -668,18 +668,18 @@ hand-edit it otherwise. The workaround is documented in
 
 ### 6.3 User-facing documentation
 
-`README.md` states that callers use Dune package management, that the planned
-Dune package and public library are `lvm-eval`, the OCaml module is `Lvm_eval`, the internal library name is `lvm_eval`, and that the
-license is ISC. It records that `lvm-eval` pins `../murder` and inherits Raven
-at murder’s commit. `docs/nlb-protocol.md` records dataset values as
-documentation only. No dataset configs or presets are compiled into the
-library.
+`README.md` states that callers use Dune package management, that the Dune
+package/public library is `lvm-eval`, the OCaml module is `Lvm_eval`, the
+internal library name is `lvm_eval`, and that the license is ISC. It records
+that `lvm-eval` pins `../murder` and inherits Raven at murder’s commit.
+`docs/nlb-protocol.md` records dataset values as documentation only. No
+dataset configs or presets are compiled into the library.
 
 ## 7. Milestones
 
-The order is deliberate: shared helpers and bps first; forward is the same
-core; PSTH; DMFC code; DMFC global; velocity decoding last. Each milestone is
-one coherent task with a done-check.
+All six milestones are complete. The order was deliberate: shared helpers and
+bps first; forward is the same core; PSTH; DMFC code; DMFC global; velocity
+decoding last. Each milestone is one coherent task with a done-check.
 
 ### Milestone 1 — shared helpers + co-smoothing bps
 
@@ -877,6 +877,31 @@ These are distil changes; `lvm-eval` never depends on distil.
 | DMFC_RSG speed–tp | No distil DMFC data today. If added, provide set-go mask, condition labels, `tp`, and all-neuron rates. |
 | Velocity decoding | Align behaviour at the NLB lag (MC_Maze 100 ms; scaling 120 ms) or document a different alignment; pass per-bin rates; use the NLB decoder protocol (no standardization, sample-wise 5-fold) for NLB-comparable numbers; keep `Distil.Decode` only for distil diagnostics. |
 | Dependency | Distil pins `lvm-eval`; `lvm-eval` never imports or depends on distil. The user plans to modify distil’s data format to the MC_Maze NLB format. |
+
+## 15. Phase-5 review
+
+The first release is complete.
+
+- All six milestones are implemented and covered by synthetic fixtures.
+- `dune build`, `dune runtest`, `dune fmt`, and `dune build @ci` pass in a
+  fresh clone of the reviewed commit.
+- The public API is the four metric modules in `lib/lvm_eval.mli`; `Check`,
+  `Mask`, `Numeric`, `R2`, `Pearson`, and `Ridge` remain internal.
+- The library links only `nx`; tests add `nx.io` for `.npy` fixtures. There is
+  no file I/O, CLI, model code, data loading, splitting, alignment, or dataset
+  config in the library.
+- The committed `dune.lock` resolves Raven at
+  `3984341140aef7bfc6f27eb14474f4a261a7b7bc` and carries the documented
+  dev-package build workaround.
+- All fixtures are synthetic and committed under `test/fixtures/`; the
+  generator is `reference/generate_fixtures.py`. Real-data fixtures remain
+  blocked by the unfetched LFS target file.
+- Known deviations from the reference are listed in §9. The DMFC global
+  variant is explicitly a paper reading, not an `nlb_tools` reproduction.
+
+Remaining non-blocking items: the public dtype remains `Nx.float64_t` only
+(§8), the two DMFC speed loops remain duplicated by choice, and the `.npy`
+fixture format is accepted.
 
 ## References
 

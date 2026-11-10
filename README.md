@@ -26,14 +26,13 @@ trial or neuron alignment.
 
 ## How to depend on it
 
-Use Dune package management. The planned Dune package and public library are `lvm-eval`; the
-OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC. A caller pins this repository;
-`lvm-eval` pins `../murder` itself and inherits Raven at the commit murder
-pins. The exact pin, lock and Raven dev-package workaround are in
-[`plan.md`](plan.md) §6.
+Use Dune package management. The Dune package and public library are
+`lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is
+`lvm_eval`; the license is ISC. A caller pins this repository; `lvm-eval` pins
+`../murder` itself and inherits Raven at the commit murder pins. The exact
+pin, lock and Raven dev-package workaround are in [`plan.md`](plan.md) §6.
 
 ```text
-; planned; the Dune project does not exist yet
 (pin (url "../lvm-eval") (package (name lvm-eval)))
 ; caller's dune file
 (libraries lvm-eval)
@@ -43,12 +42,13 @@ pins. The exact pin, lock and Raven dev-package workaround are in
 
 ## Status
 
-Early design. There is no Dune project, library, test suite, or CLI yet.
-[`plan.md`](plan.md) is the implementation plan, including the public API
-sketch, metric specifications, verification strategy, milestones, edge-case
-behaviour, and known deviations. [`docs/nlb-protocol.md`](docs/nlb-protocol.md)
-records the dataset-level NLB values for callers; those values are
-documentation, not code presets.
+First release implemented. The Dune project, library, tests, and synthetic
+golden fixtures are in place. There is no CLI and no file I/O in the first
+release. [`plan.md`](plan.md) is the implementation plan and review record,
+including the public API, metric specifications, verification strategy,
+milestones, edge-case behaviour, and known deviations.
+[`docs/nlb-protocol.md`](docs/nlb-protocol.md) records the dataset-level NLB
+values for callers; those values are documentation, not code presets.
 
 The first release reproduces the `nlb_tools` NLB metrics for valid inputs.
 The DMFC_RSG global variant is a documented paper reading, not an
