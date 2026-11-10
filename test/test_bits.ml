@@ -11,9 +11,13 @@ let rec find_root dir =
 
 let root = find_root (Sys.getcwd ())
 let fixture_dir = Filename.concat root "test/fixtures/bits"
+let forward_dir = Filename.concat root "test/fixtures/forward"
 let input name = Filename.concat fixture_dir ("inputs/" ^ name ^ ".npy")
+let forward_input name = Filename.concat forward_dir ("inputs/" ^ name ^ ".npy")
 let load_float name = Nx_io.load_npy (input name) |> Nx.unpack Nx.float64
 let load_bool name = Nx_io.load_npy (input name) |> Nx.unpack Nx.bool
+let load_forward_float name = Nx_io.load_npy (forward_input name) |> Nx.unpack Nx.float64
+let load_forward_bool name = Nx_io.load_npy (forward_input name) |> Nx.unpack Nx.bool
 
 let read_lines path =
   let channel = open_in path in
@@ -29,12 +33,15 @@ let read_lines path =
 let words line =
   String.split_on_char ' ' line |> List.filter (fun word -> not (String.equal word ""))
 
-let expected_cases =
-  read_lines (Filename.concat fixture_dir "expected.txt")
+let expected_cases path =
+  read_lines path
   |> List.map (fun line ->
     match words line with
     | [ name; expected ] -> name, expected
     | _ -> failwith ("test_bits: malformed expected line: " ^ line))
+
+let bits_cases = expected_cases (Filename.concat fixture_dir "expected.txt")
+let forward_cases = expected_cases (Filename.concat forward_dir "expected.txt")
 
 let call ~rates ~spikes ?mask () =
   Lvm_eval.Bits.co_smoothing
@@ -132,7 +139,7 @@ let () =
          let expected = float_of_string expected_text in
          let got = call ~rates ~spikes ?mask () in
          check_value name expected got))
-    expected_cases
+    bits_cases
 
 let () =
   (* The reference mutates zero rates in place; lvm-eval must not. *)
@@ -185,8 +192,89 @@ let () =
   expect_invalid_contains
     "inf spikes"
     [ "Lvm_eval.Bits.co_smoothing"; "spikes_heldout"; "infinity" ]
-    (fun () -> call ~rates:rates_3d ~spikes:inf_spikes ());
+    (fun () -> call ~rates:rates_3d ~spikes:inf_spikes ())
+
+let () =
+  let call_forward ~rates ~spikes ?mask () =
+    Lvm_eval.Bits.forward_prediction
+      ~rates_forward:rates
+      ~spikes_forward:spikes
+      ?mask_forward:mask
+      ()
+  in
+  List.iter
+    (fun (name, expected_text) ->
+       let rates = load_forward_float (name ^ "_rates") in
+       let spikes = load_forward_float (name ^ "_spikes") in
+       let mask =
+         if Sys.file_exists (forward_input (name ^ "_mask"))
+         then Some (load_forward_bool (name ^ "_mask"))
+         else None
+       in
+       let expected = float_of_string expected_text in
+       let got = call_forward ~rates ~spikes ?mask () in
+       check_value ("forward." ^ name) expected got)
+    forward_cases
+
+let () =
+  let call_forward ~rates ~spikes ?mask () =
+    Lvm_eval.Bits.forward_prediction
+      ~rates_forward:rates
+      ~spikes_forward:spikes
+      ?mask_forward:mask
+      ()
+  in
+  let rates = load_forward_float "forward_nan_rates" in
+  let spikes = load_forward_float "forward_nan_spikes" in
+  let mask = load_forward_bool "forward_nan_mask" in
+  let rates_before = Nx.to_array rates in
+  let spikes_before = Nx.to_array spikes in
+  let mask_before = Nx.to_array mask in
+  let without = call_forward ~rates ~spikes () in
+  let with_mask = call_forward ~rates ~spikes ~mask () in
+  check_unchanged_float
+    "forward_prediction rates_forward"
+    rates_before
+    (Nx.to_array rates);
+  check_unchanged_float
+    "forward_prediction spikes_forward"
+    spikes_before
+    (Nx.to_array spikes);
+  check_unchanged_bool "forward_prediction mask_forward" mask_before (Nx.to_array mask);
+  if relative_error without with_mask > 1e-12
+  then failwith "forward explicit mask and NaN-spike paths disagree"
+
+let () =
+  let call_forward ~rates ~spikes ?mask () =
+    Lvm_eval.Bits.forward_prediction
+      ~rates_forward:rates
+      ~spikes_forward:spikes
+      ?mask_forward:mask
+      ()
+  in
+  let rates = create float64 [| 1; 2; 2 |] [| 1.; 2.; 3.; 4. |] in
+  let spikes = create float64 [| 1; 2; 2 |] [| 1.; 0.; 2.; 0. |] in
+  let spikes_wrong = create float64 [| 1; 2; 3 |] [| 1.; 0.; 2.; 0.; 1.; 1. |] in
+  let rates_2d = create float64 [| 2; 2 |] [| 1.; 2.; 3.; 4. |] in
+  let spikes_2d = create float64 [| 2; 2 |] [| 1.; 0.; 2.; 0. |] in
+  let mask_wrong =
+    create bool [| 1; 2; 3 |] [| true; false; true; false; true; false |]
+  in
+  expect_invalid_contains
+    "forward rank"
+    [ "Lvm_eval.Bits.forward_prediction"; "rates_forward"; "[trial;time;neuron]" ]
+    (fun () -> call_forward ~rates:rates_2d ~spikes:spikes_2d ());
+  expect_invalid_contains
+    "forward shape"
+    [ "Lvm_eval.Bits.forward_prediction"; "rates_forward"; "spikes_forward" ]
+    (fun () -> call_forward ~rates ~spikes:spikes_wrong ());
+  expect_invalid_contains
+    "forward mask shape"
+    [ "mask_forward"; "spikes_forward" ]
+    (fun () -> call_forward ~rates ~spikes ~mask:mask_wrong ())
+
+let () =
   Printf.printf
-    "bits: max relative error=%.3e max absolute error (expected zero)=%.3e\n%!"
+    "bits/forward: max relative error=%.3e max absolute error (expected zero)=%.3e\n%!"
     !max_relative
     !max_absolute_zero

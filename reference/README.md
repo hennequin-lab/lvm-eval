@@ -1,7 +1,8 @@
 # Reference fixture generator
 
 `generate_fixtures.py` generates the synthetic co-smoothing fixtures under
-`test/fixtures/bits/`. It imports the pinned `nlb_tools` checkout read-only
+`test/fixtures/bits/` and the synthetic forward-prediction fixtures under
+`test/fixtures/forward/`. It imports the pinned `nlb_tools` checkout read-only
 through `PYTHONPATH` and does not install into it or write inside it. It
 imports only `nlb_tools.evaluation.bits_per_spike`; no pandas or pynwb is
 needed for this metric path.
@@ -46,7 +47,8 @@ PYTHONDONTWRITEBYTECODE=1 \
 The expected bits/spike is computed with `nlb_tools.evaluation.bits_per_spike`
 on a copy of the rates because the reference mutates zero rates in place. The
 fixture input is the original rates array. Outputs are synthetic only under
-`test/fixtures/bits/`; no real data, LFS data, or distil data is used.
+`test/fixtures/bits/` and `test/fixtures/forward/`; no real data, LFS data, or
+distil data is used.
 
 Before running, verify the reference checkout is clean and at the commit above:
 

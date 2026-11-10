@@ -23,3 +23,24 @@ val co_smoothing
   -> ?mask_heldout:Nx.bool_t
   -> unit
   -> float
+
+(** [forward_prediction ~rates_forward ~spikes_forward ?mask_forward ()]
+    computes forward-prediction bits/spike for future
+    [trial;forward_time;all_neuron] tensors.
+
+    The metric is defined in the NLB'21 paper, section 3.3. The reference is
+    [nlb_tools/evaluation.py:14 evaluate] (forward branch and its
+    [np.dstack] of held-in and held-out neurons) and
+    [nlb_tools/evaluation.py:252 bits_per_spike]. The future-window length is
+    caller data preparation; this function has no window parameter.
+
+    [rates_forward] is the model output for future bins across all neurons:
+    expected spike counts per bin, not Hz. [spikes_forward] is the held-out
+    future target. The arithmetic is the same bps core as
+    {!co_smoothing}. *)
+val forward_prediction
+  :  rates_forward:Nx.float64_t
+  -> spikes_forward:Nx.float64_t
+  -> ?mask_forward:Nx.bool_t
+  -> unit
+  -> float
