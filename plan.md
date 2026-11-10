@@ -745,14 +745,17 @@ tested; no standardization; empty mask raises; training samples below two per
 fold raises; NaN in a non-first behaviour column raises; constant behaviour uses
 force-finite R²; no mutation.
 
-## 8. Decisions
+## 8. Open questions
+
+None; the public dtype is decided below. The scikit-learn/fixture environment
+is fixed in §5.1 and §12. GPU placement is decided in §11. Real-data fixtures
+are blocked; see §13.
+
+### Public dtype
 
 The public API is `Nx.float64_t` only. Callers with float32 cast at the
 boundary; the phase-1 float32-with-internal-cast option was not adopted. This
 keeps one metric path and satisfies the float64 requirement.
-
-The scikit-learn/fixture environment is fixed in §5.1 and §12. GPU placement
-is decided in §11. Real-data fixtures are blocked; see §13.
 
 ## 9. Edge-case behaviour
 
