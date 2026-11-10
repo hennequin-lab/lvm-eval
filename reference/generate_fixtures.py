@@ -20,7 +20,7 @@ from pathlib import Path
 import h5py
 import numpy as np
 
-from nlb_tools.evaluation import bits_per_spike
+from nlb_tools.evaluation import bits_per_spike, eval_psth
 
 EXPECTED_NLB_TOOLS_COMMIT = "42f8410b88e12db136910fa2f888b025ea0aa2ae"
 REFERENCE_ROOT = Path("/home/fh397/projects/_refs/nlb_tools")
@@ -29,6 +29,8 @@ FIXTURE_ROOT = REPO_ROOT / "test" / "fixtures" / "bits"
 INPUTS = FIXTURE_ROOT / "inputs"
 FORWARD_ROOT = REPO_ROOT / "test" / "fixtures" / "forward"
 FORWARD_INPUTS = FORWARD_ROOT / "inputs"
+PSTH_ROOT = REPO_ROOT / "test" / "fixtures" / "psth"
+PSTH_INPUTS = PSTH_ROOT / "inputs"
 SEED = 0
 
 # 2 trials x 3 time bins x 2 held-out neurons. All values are synthetic.
@@ -62,6 +64,26 @@ FORWARD_SPIKES = np.array(
     ],
     dtype=np.float64,
 )
+
+# 3 eval trials x 5 time bins x 2 neurons and 2 conditions x 5 time bins x 2
+# neurons. All values are synthetic.
+PSTH_RATES = np.array(
+    [
+        [[0.8, 1.1], [1.2, 0.7], [0.5, 1.5], [1.4, 0.6], [0.9, 1.0]],
+        [[1.3, 0.6], [0.7, 1.2], [1.1, 0.8], [0.4, 1.7], [1.6, 0.5]],
+        [[0.6, 1.4], [1.5, 0.5], [0.3, 1.3], [1.2, 0.9], [0.8, 1.1]],
+    ],
+    dtype=np.float64,
+)
+PSTH_TARGET = np.array(
+    [
+        [[1.0, 2.0], [1.1, 2.1], [1.2, 2.2], [1.3, 2.3], [1.4, 2.4]],
+        [[2.0, 1.0], [2.1, 1.1], [2.2, 1.2], [2.3, 1.3], [2.4, 1.4]],
+    ],
+    dtype=np.float64,
+)
+PSTH_COND_IDX = [np.array([0, 1], dtype=np.int64), np.array([2], dtype=np.int64)]
+PSTH_JITTER = np.array([1, 1, -1], dtype=np.int64)
 
 
 def _case(name: str, rates: np.ndarray, spikes: np.ndarray, *, mask: np.ndarray | None = None):
@@ -166,6 +188,96 @@ def build_forward_cases():
     return cases
 
 
+def build_psth_cases():
+    cases = []
+
+    cases.append(
+        {
+            "name": "normal",
+            "psth": PSTH_TARGET.copy(),
+            "rates": PSTH_RATES.copy(),
+            "cond_idx": [ids.copy() for ids in PSTH_COND_IDX],
+            "jitter": None,
+            "kind": "numeric",
+        }
+    )
+
+    jitter_psth = PSTH_TARGET.copy()
+    jitter_psth[0, 0, :] = np.nan
+    jitter_psth[1, -1, :] = np.nan
+    cases.append(
+        {
+            "name": "jitter",
+            "psth": jitter_psth,
+            "rates": PSTH_RATES.copy(),
+            "cond_idx": [ids.copy() for ids in PSTH_COND_IDX],
+            "jitter": PSTH_JITTER.copy(),
+            "kind": "numeric",
+        }
+    )
+
+    cases.append(
+        {
+            "name": "no_eval_condition",
+            "psth": PSTH_TARGET.copy(),
+            "rates": PSTH_RATES.copy(),
+            "cond_idx": [np.array([0, 1], dtype=np.int64), np.array([], dtype=np.int64)],
+            "jitter": None,
+            "kind": "numeric",
+        }
+    )
+
+    cases.append(
+        {
+            "name": "all_empty",
+            "psth": PSTH_TARGET.copy(),
+            "rates": PSTH_RATES.copy(),
+            "cond_idx": [np.array([], dtype=np.int64), np.array([], dtype=np.int64)],
+            "jitter": None,
+            "kind": "error",
+        }
+    )
+
+    no_valid_psth = np.full_like(PSTH_TARGET, np.nan)
+    cases.append(
+        {
+            "name": "no_valid_rows",
+            "psth": no_valid_psth,
+            "rates": PSTH_RATES.copy(),
+            "cond_idx": [ids.copy() for ids in PSTH_COND_IDX],
+            "jitter": None,
+            "kind": "error",
+        }
+    )
+
+    nan_rates = PSTH_RATES.copy()
+    nan_rates[0, 0, 0] = np.nan
+    cases.append(
+        {
+            "name": "nan_prediction",
+            "psth": PSTH_TARGET.copy(),
+            "rates": nan_rates,
+            "cond_idx": [ids.copy() for ids in PSTH_COND_IDX],
+            "jitter": None,
+            "kind": "error",
+        }
+    )
+
+    return cases
+
+
+def _save_cond_idx(name, cond_idx):
+    max_len = max((len(ids) for ids in cond_idx), default=0)
+    padded = np.full((len(cond_idx), max_len), -1, dtype=np.int64)
+    for i, ids in enumerate(cond_idx):
+        padded[i, : len(ids)] = ids
+    np.save(PSTH_INPUTS / f"{name}_cond_idx.npy", padded)
+    np.save(
+        PSTH_INPUTS / f"{name}_cond_sizes.npy",
+        np.array([len(ids) for ids in cond_idx], dtype=np.int64),
+    )
+
+
 def main() -> None:
     head = subprocess.check_output(
         ["git", "-C", str(REFERENCE_ROOT), "rev-parse", "HEAD"], text=True
@@ -253,6 +365,45 @@ def main() -> None:
     (FORWARD_ROOT / "expected.txt").write_text("\n".join(forward_expected) + "\n")
     (FORWARD_ROOT / "meta.txt").write_text("\n".join(forward_meta) + "\n")
 
+    PSTH_INPUTS.mkdir(parents=True, exist_ok=True)
+    psth_expected = []
+    psth_meta = common_meta + []
+    for case in build_psth_cases():
+        name = case["name"]
+        psth = case["psth"]
+        rates = case["rates"]
+        cond_idx = case["cond_idx"]
+        jitter = case["jitter"]
+
+        np.save(PSTH_INPUTS / f"{name}_psth.npy", psth)
+        np.save(PSTH_INPUTS / f"{name}_rates.npy", rates)
+        _save_cond_idx(name, cond_idx)
+        if jitter is not None:
+            np.save(PSTH_INPUTS / f"{name}_jitter.npy", jitter)
+
+        if case["kind"] == "numeric":
+            expected = float(
+                eval_psth(
+                    psth.copy(),
+                    rates.copy(),
+                    [ids.copy() for ids in cond_idx],
+                    jitter=None if jitter is None else jitter.copy(),
+                )
+            )
+            psth_expected.append(f"{name} {expected:.17g}")
+        else:
+            psth_expected.append(f"{name} error")
+
+        psth_meta.append(
+            f"case {name}: psth shape={psth.shape} dtype={psth.dtype}; "
+            f"rates shape={rates.shape} dtype={rates.dtype}; "
+            f"conditions={len(cond_idx)}; jitter={'none' if jitter is None else 'integer bins'}; "
+            f"expected={'numeric' if case['kind'] == 'numeric' else 'error'}"
+        )
+
+    (PSTH_ROOT / "expected.txt").write_text("\n".join(psth_expected) + "\n")
+    (PSTH_ROOT / "meta.txt").write_text("\n".join(psth_meta) + "\n")
+
     status_after = subprocess.check_output(
         ["git", "-C", str(REFERENCE_ROOT), "status", "--porcelain"], text=True
     )
@@ -261,7 +412,8 @@ def main() -> None:
 
     print(
         f"wrote {len(build_cases())} bits cases to {FIXTURE_ROOT} and "
-        f"{len(build_forward_cases())} forward cases to {FORWARD_ROOT}"
+        f"{len(build_forward_cases())} forward cases to {FORWARD_ROOT} and "
+        f"{len(build_psth_cases())} psth cases to {PSTH_ROOT}"
     )
 
 

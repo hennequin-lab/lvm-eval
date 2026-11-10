@@ -1,0 +1,17 @@
+generator: reference/generate_fixtures.py
+fixture_kind: synthetic
+seed: 0
+python: 3.13.5
+numpy: 2.5.4
+scipy: 1.18.1
+scikit-learn: 1.9.1
+h5py: 3.16.0
+nlb_tools_commit: 42f8410b88e12db136910fa2f888b025ea0aa2ae
+reference_note: expected bps are computed on a copy of rates because neg_log_likelihood mutates zero rates in place
+
+case normal: psth shape=(2, 5, 2) dtype=float64; rates shape=(3, 5, 2) dtype=float64; conditions=2; jitter=none; expected=numeric
+case jitter: psth shape=(2, 5, 2) dtype=float64; rates shape=(3, 5, 2) dtype=float64; conditions=2; jitter=integer bins; expected=numeric
+case no_eval_condition: psth shape=(2, 5, 2) dtype=float64; rates shape=(3, 5, 2) dtype=float64; conditions=2; jitter=none; expected=numeric
+case all_empty: psth shape=(2, 5, 2) dtype=float64; rates shape=(3, 5, 2) dtype=float64; conditions=2; jitter=none; expected=error
+case no_valid_rows: psth shape=(2, 5, 2) dtype=float64; rates shape=(3, 5, 2) dtype=float64; conditions=2; jitter=none; expected=error
+case nan_prediction: psth shape=(2, 5, 2) dtype=float64; rates shape=(3, 5, 2) dtype=float64; conditions=2; jitter=none; expected=error
