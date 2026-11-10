@@ -13,6 +13,7 @@ import sys
 sys.dont_write_bytecode = True
 
 import importlib.metadata
+import os
 import platform
 import subprocess
 from pathlib import Path
@@ -24,7 +25,20 @@ from scipy.stats import pearsonr
 from nlb_tools.evaluation import bits_per_spike, eval_psth, speed_tp_correlation, velocity_decoding
 
 EXPECTED_NLB_TOOLS_COMMIT = "42f8410b88e12db136910fa2f888b025ea0aa2ae"
-REFERENCE_ROOT = Path("/home/fh397/projects/_refs/nlb_tools")
+
+
+def _reference_root() -> Path:
+    value = os.environ.get("NLB_TOOLS_ROOT")
+    if not value:
+        raise SystemExit(
+            "Set NLB_TOOLS_ROOT to a clean checkout of "
+            "https://github.com/neurallatents/nlb_tools at commit "
+            f"{EXPECTED_NLB_TOOLS_COMMIT}"
+        )
+    return Path(value)
+
+
+REFERENCE_ROOT = _reference_root()
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURE_ROOT = REPO_ROOT / "test" / "fixtures" / "bits"
 INPUTS = FIXTURE_ROOT / "inputs"

@@ -8,9 +8,9 @@ and live in code; dataset-level values live here.
 
 Sources:
 
-- paper: `/home/fh397/projects/distil/_papers/NLB.pdf` §3.1, §A.5.1, §A.5.2,
+- paper: `https://arxiv.org/html/2109.04463v4` §3.1, §A.5.1, §A.5.2,
   §A.5.3, §A.6;
-- `nlb_tools`: `/home/fh397/projects/_refs/nlb_tools`, commit
+- `nlb_tools`: `https://github.com/neurallatents/nlb_tools`, commit
   `42f8410b88e12db136910fa2f888b025ea0aa2ae`, especially
   `nlb_tools/make_tensors.py` (`PARAMS`, lines 14-204) and
   `nlb_tools/evaluation.py`.

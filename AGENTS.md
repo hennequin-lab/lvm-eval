@@ -3,12 +3,14 @@
 ## Purpose
 Library of evaluation metrics for latent variable models. Receives model
 outputs and targets; never contains models, weights, or training code.
-First metric set: NLB (/home/fh397/projects/distil/_papers/NLB.pdf), reproduced for valid inputs; deliberate degenerate-input deviations are listed in plan.md §9. Reference implementation: github.com/neurallatents/nlb_tools.
+First metric set: NLB (https://arxiv.org/html/2109.04463v4), reproduced for valid inputs; deliberate degenerate-input deviations are listed in plan.md §9. Reference implementation: https://github.com/neurallatents/nlb_tools.
 
 ## Hard constraints 
-- Pinned to /home/fh397/projects/murder via Dune package management ((pin (url "../murder") ...)
-  in dune-project, committed dune.lock), as distil does. Not opam. Raven
-  versions are whatever murder pins.
+- Pinned to https://github.com/hennequin-lab/murder at commit
+  `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` via Dune package management
+  (`(pin (url "git+https://github.com/hennequin-lab/murder.git#f2f0263ffc768f0adc49292b28d4e7fb6eda6069") ...)`
+  in dune-project, committed dune.lock). Not opam. Raven versions are whatever
+  murder pins.
 - OCaml Raven only for numerics/ML. No Python in the build or runtime.
   Python is used only to generate test fixtures, under reference/, outside dune.
 - lvm-eval never depends on other projects (distil etc.).

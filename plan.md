@@ -7,10 +7,10 @@ older README proposal disagree, this plan wins.
 
 Real paths in this repository's environment:
 
-- paper: `/home/fh397/projects/distil/_papers/NLB.pdf`
-- reference implementation: `/home/fh397/projects/_refs/nlb_tools`
-- murder: `/home/fh397/projects/murder`
-- distil: `/home/fh397/projects/distil`
+- paper: `https://arxiv.org/html/2109.04463v4`
+- reference implementation: `https://github.com/neurallatents/nlb_tools`
+- murder: `https://github.com/hennequin-lab/murder`
+- distil: `https://github.com/hennequin-lab/distil`
 
 Tensor layout for every public metric is **`[trial; time; neuron]`**. This is
 the `nlb_tools` layout. It is not the `[time; trial; neuron]` layout used by
@@ -339,7 +339,7 @@ let decode_r2 =
 
 ### 4.1 Co-smoothing bits/spike
 
-**Paper.** `/home/fh397/projects/distil/_papers/NLB.pdf` §3.2:
+**Paper.** `https://arxiv.org/html/2109.04463v4` §3.2:
 
 ```text
 bps = 1/(n_sp log 2) [ L(λ; ŷ) - L(λ̄; ŷ) ]
@@ -374,7 +374,7 @@ on a copy; compute `Nx.lgamma(spikes + 1)` on valid entries; sum in float64;
 
 ### 4.2 Forward-prediction bits/spike
 
-**Paper.** `/home/fh397/projects/distil/_papers/NLB.pdf` §3.3: same bps as
+**Paper.** `https://arxiv.org/html/2109.04463v4` §3.3: same bps as
 co-smoothing, with held-out entries at future time points across all neurons.
 
 **Reference.** `evaluation.py:14 evaluate` (forward branch) and
@@ -396,7 +396,7 @@ difference is the input tensors and their shape `[B,F,N_all]`.
 
 ### 4.3 PSTH R²
 
-**Paper.** `/home/fh397/projects/distil/_papers/NLB.pdf` §3.3 and A.5.3, A.6:
+**Paper.** `https://arxiv.org/html/2109.04463v4` §3.3 and A.5.3, A.6:
 trial-averaged model rates per condition compared to an empirical PSTH built
 from smoothed spikes; R² per neuron across conditions, then averaged across
 neurons. The reference evaluator consumes a precomputed `psth`; PSTH
@@ -433,7 +433,7 @@ neuron over the pooled condition-time rows; average neurons.
 
 ### 4.4 DMFC_RSG speed–tp, code variant
 
-**Paper.** `/home/fh397/projects/distil/_papers/NLB.pdf` §3.3 and A.6: average
+**Paper.** `https://arxiv.org/html/2109.04463v4` §3.3 and A.6: average
 neural speed per trial from test rate predictions, then Pearson r with `tp`.
 A.6 specifies the set-go window and jitter.
 
@@ -460,7 +460,7 @@ label, require at least two trials and nonzero variance in both speed and
 
 ### 4.5 DMFC_RSG speed–tp, global variant
 
-**Paper.** `/home/fh397/projects/distil/_papers/NLB.pdf` §3.3 says “calculate
+**Paper.** `https://arxiv.org/html/2109.04463v4` §3.3 says “calculate
 Pearson’s r between neural speeds and the measured `tp`.” It does not specify
 the mask, neuron set, or speed definition.
 
@@ -482,7 +482,7 @@ script is not a reference implementation of NLB.
 
 ### 4.6 Velocity-decoding R²
 
-**Paper.** `/home/fh397/projects/distil/_papers/NLB.pdf` §3.3: ridge
+**Paper.** `https://arxiv.org/html/2109.04463v4` §3.3: ridge
 regression from training rates to hand velocity, R² on test rates. A.5.2 gives
 decoding lags; the lag is applied by data preparation in the reference.
 
@@ -525,7 +525,7 @@ samples; predict eval; compute R² per output dimension with sklearn’s
 
 Generate goldens outside dune with `reference/generate_fixtures.py` (Python is
 fixture-only, never build/runtime). The generator imports
-`/home/fh397/projects/_refs/nlb_tools/nlb_tools/evaluation.py` at commit
+`https://github.com/neurallatents/nlb_tools/blob/42f8410b88e12db136910fa2f888b025ea0aa2ae/nlb_tools/evaluation.py` at commit
 `42f8410b88e12db136910fa2f888b025ea0aa2ae` and writes plain fixture arrays plus
 expected values.
 
@@ -613,20 +613,22 @@ diagnostic with a different decoder protocol.
 
 ### 6.1 Pin
 
-`lvm-eval` uses Dune package management, not opam, mirroring
-`/home/fh397/projects/distil/dune-project:25-41`. The pin is:
+`lvm-eval` uses Dune package management, not opam, mirroring the approach
+used by `distil`. The pin is:
 
 ```text
 (pin
- (url "../murder")
+ (url
+  "git+https://github.com/hennequin-lab/murder.git#f2f0263ffc768f0adc49292b28d4e7fb6eda6069")
  (package
   (name cmdargs)))
 ```
 
 `cmdargs` is pinned only as the Dune recursive-pin anchor. `lvm-eval` does
-not link or depend on `cmdargs`; it depends on Raven `nx`. A throwaway project
-in `/tmp` confirmed that pinning `cmdargs` and depending only on `nx`/`rune`
-resolves Raven at murder’s commit. The Dune package and public library are `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC (matching murder and distil).
+not link or depend on `cmdargs`; it depends on Raven `nx`. The public Git pin
+means a caller does not need a sibling murder checkout: Dune resolves murder's
+commit and inherits its Raven pin. A throwaway project in `/tmp` confirmed the
+same resolution with a local pin. The Dune package and public library are `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC (matching murder and distil).
 The package depends on:
 
 ```text
@@ -665,15 +667,14 @@ pinned dev `.pkg` file to the rule distil documents:
 
 This is the only permitted lock edit. Review the generated lock diff; do not
 hand-edit it otherwise. The workaround is documented in
-`/home/fh397/projects/distil/dune-project:12-23` and
-`/home/fh397/projects/distil/README.md:105-114`.
+the public `distil` repository's `dune-project` and `README.md`.
 
 ### 6.3 User-facing documentation
 
 `README.md` states that callers use Dune package management, that the Dune
 package/public library is `lvm-eval`, the OCaml module is `Lvm_eval`, the
 internal library name is `lvm_eval`, and that the license is ISC. It records
-that `lvm-eval` pins `../murder` and inherits Raven at murder’s commit.
+that `lvm-eval` pins murder from its public Git URL and inherits Raven at murder’s commit.
 `docs/nlb-protocol.md` records dataset values as documentation only. No
 dataset configs or presets are compiled into the library.
 
@@ -845,6 +846,7 @@ without the deviations in this table.
 | murder | `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` |
 | Raven | `3984341140aef7bfc6f27eb14474f4a261a7b7bc` |
 | nlb_tools | `42f8410b88e12db136910fa2f888b025ea0aa2ae` |
+| lvm-eval release | `0.1.0` |
 | Dune package / Dune library / public name / OCaml module / license | `lvm-eval` / `lvm_eval` / `lvm-eval` / `Lvm_eval` / ISC |
 | scikit-learn (fixture generator) | 1.9.1 (fixed; `nlb_tools` does not pin one) |
 | numpy (fixture generator) | 2.5.4 |
@@ -857,7 +859,7 @@ environments.
 
 ## 13. Real-data fixtures
 
-`/home/fh397/projects/_refs/nlb_tools/data/eval_data_test.h5` is a 134-byte
+`https://github.com/neurallatents/nlb_tools/blob/42f8410b88e12db136910fa2f888b025ea0aa2ae/data/eval_data_test.h5` is a 134-byte
 Git LFS pointer, not the HDF5 target data. It was not fetched. Fixtures that
 need real test targets are therefore blocked. Synthetic fixtures come first.
 
@@ -910,9 +912,9 @@ and the `.npy` fixture format is accepted. The public dtype is decided as
 
 ## References
 
-- Paper: `/home/fh397/projects/distil/_papers/NLB.pdf` §3.2, §3.3, §A.5.1,
+- Paper: `https://arxiv.org/html/2109.04463v4` §3.2, §3.3, §A.5.1,
   §A.5.2, §A.5.3, §A.6.
-- Reference: `/home/fh397/projects/_refs/nlb_tools`, commit
+- Reference: `https://github.com/neurallatents/nlb_tools`, commit
   `42f8410b88e12db136910fa2f888b025ea0aa2ae`; `nlb_tools/evaluation.py`,
   `nlb_tools/make_tensors.py`, `nlb_tools/nwb_interface.py`.
 - Dataset values: `docs/nlb-protocol.md`.

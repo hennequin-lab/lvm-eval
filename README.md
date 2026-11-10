@@ -28,12 +28,18 @@ trial or neuron alignment.
 
 Use Dune package management. The Dune package and public library are
 `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is
-`lvm_eval`; the license is ISC. A caller pins this repository; `lvm-eval` pins
-`../murder` itself and inherits Raven at the commit murder pins. The exact
-pin, lock and Raven dev-package workaround are in [`plan.md`](plan.md) §6.
+`lvm_eval`; the license is ISC. A caller pins the public repository at the
+release tag; `lvm-eval` pins
+`https://github.com/hennequin-lab/murder` at commit
+`f2f0263ffc768f0adc49292b28d4e7fb6eda6069` and inherits Raven at murder's
+commit. No sibling checkout is required. The exact pin, lock and Raven
+dev-package workaround are in [`plan.md`](plan.md) §6.
 
 ```text
-(pin (url "../lvm-eval") (package (name lvm-eval)))
+(pin
+ (url
+  "git+https://github.com/hennequin-lab/lvm-eval.git#v0.1.0")
+ (package (name lvm-eval)))
 ; caller's dune file
 (libraries lvm-eval)
 ```
@@ -42,9 +48,9 @@ pin, lock and Raven dev-package workaround are in [`plan.md`](plan.md) §6.
 
 ## Status
 
-First release implemented. The Dune project, library, tests, and synthetic
-golden fixtures are in place. There is no CLI and no file I/O in the first
-release. [`plan.md`](plan.md) is the implementation plan and review record,
+First release `v0.1.0` implemented. The Dune project, library, tests, and
+synthetic golden fixtures are in place. There is no CLI and no file I/O in the
+first release. [`plan.md`](plan.md) is the implementation plan and review record,
 including the public API, metric specifications, verification strategy,
 milestones, edge-case behaviour, and known deviations.
 [`docs/nlb-protocol.md`](docs/nlb-protocol.md) records the dataset-level NLB
@@ -63,6 +69,6 @@ ISC.
 
 - Pei et al., *Neural Latents Benchmark '21: Evaluating latent variable models
   of neural population activity*, NeurIPS 2021 Datasets and Benchmarks. Paper:
-  `/home/fh397/projects/distil/_papers/NLB.pdf`.
-- Reference implementation: `/home/fh397/projects/_refs/nlb_tools`, commit
+  `https://arxiv.org/html/2109.04463v4`.
+- Reference implementation: `https://github.com/neurallatents/nlb_tools`, commit
   `42f8410b88e12db136910fa2f888b025ea0aa2ae`.

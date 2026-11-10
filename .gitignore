@@ -10,3 +10,8 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+
+# Public-data safety; fixtures are synthetic .npy arrays.
+*.h5
+*.hdf5
+data/

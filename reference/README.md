@@ -14,10 +14,9 @@ imports `nlb_tools.evaluation.bits_per_spike`,
 and `nlb_tools.evaluation.velocity_decoding`; no pandas or pynwb is needed for
 these metric paths.
 
-The reference checkout is:
-
-- path: `/home/fh397/projects/_refs/nlb_tools`
-- commit: `42f8410b88e12db136910fa2f888b025ea0aa2ae`
+The reference checkout is a clean local clone of
+`https://github.com/neurallatents/nlb_tools` at commit
+`42f8410b88e12db136910fa2f888b025ea0aa2ae`. Set `NLB_TOOLS_ROOT` to its path.
 
 ## Environment
 
@@ -46,7 +45,8 @@ threadpoolctl==3.8.0
 From the lvm-eval repository root:
 
 ```sh
-PYTHONPATH=/home/fh397/projects/_refs/nlb_tools \
+NLB_TOOLS_ROOT=/path/to/nlb_tools \
+PYTHONPATH="$NLB_TOOLS_ROOT" \
 PYTHONDONTWRITEBYTECODE=1 \
 /tmp/nlb-venv/bin/python reference/generate_fixtures.py
 ```
@@ -68,6 +68,6 @@ implementation. Velocity-decoding expected values come from
 Before running, verify the reference checkout is clean and at the commit above:
 
 ```sh
-git -C /home/fh397/projects/_refs/nlb_tools status --porcelain
-git -C /home/fh397/projects/_refs/nlb_tools rev-parse HEAD
+git -C "$NLB_TOOLS_ROOT" status --porcelain
+git -C "$NLB_TOOLS_ROOT" rev-parse HEAD
 ```
