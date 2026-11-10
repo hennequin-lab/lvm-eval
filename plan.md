@@ -114,6 +114,8 @@ modules only.
   the caller owns alignment.
 - A mismatch raises `Invalid_argument` naming the function, the argument, the
   expected shape, and the shape received.
+- Helper-level `Invalid_argument` messages from `Ridge` and `R2` are accepted as
+  clear errors; public metric boundaries do not wrap them.
 - No function mutates an input tensor.
 
 ## 3. Public API sketch
@@ -743,15 +745,14 @@ tested; no standardization; empty mask raises; training samples below two per
 fold raises; NaN in a non-first behaviour column raises; constant behaviour uses
 force-finite R²; no mutation.
 
-## 8. Open questions
+## 8. Decisions
 
-1. **Public dtype.** This plan uses `Nx.float64_t` at the public boundary and
-   requires callers with float32 to cast first. This keeps one metric path and
-   satisfies the float64 requirement. The approved report allowed float32
-   inputs with an internal cast; confirm whether float64-only is preferred.
+The public API is `Nx.float64_t` only. Callers with float32 cast at the
+boundary; the phase-1 float32-with-internal-cast option was not adopted. This
+keeps one metric path and satisfies the float64 requirement.
 
 The scikit-learn/fixture environment is fixed in §5.1 and §12. GPU placement
-is decided in §11. Real-data fixtures are blocked, not open; see §13.
+is decided in §11. Real-data fixtures are blocked; see §13.
 
 ## 9. Edge-case behaviour
 
@@ -780,6 +781,7 @@ without the deviations in this table.
 | PSTH: inconsistent first-neuron padding | Uses `psth[c,:,0]` only (`evaluation.py:373-374`); other-neuron NaNs are not masked | Same assumption; a non-finite result raises rather than returning NaN | REPRODUCES REFERENCE (documented first-neuron assumption) |
 | PSTH: jitter length mismatch | `jitter[idx]` raises `IndexError` (`evaluation.py:370`) | Clear shape error | DELIBERATE DEVIATION FROM REFERENCE |
 | PSTH: jitter magnitude at least the time length | `jitter_trial` builds an all-NaN body, then the prediction assertion raises (`evaluation.py:355-377`) | Clear error: jitter must lie in (-time,time) | DELIBERATE DEVIATION FROM REFERENCE |
+| PSTH: negative `eval_cond_idx` | Python negative indexing selects from the end (`evaluation.py:370`) | Clear error: trial indices must be in [0,B) | DELIBERATE DEVIATION FROM REFERENCE |
 | DMFC code: singleton condition | scipy 1.18.1 `pearsonr` raises `ValueError` (“must have length at least 2”); `evaluation.py:430` | Clear error: condition needs at least two trials | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of scipy exception) |
 | DMFC code: constant speed or `tp` with at least two trials | scipy 1.18.1 `pearsonr` returns NaN; mean becomes NaN (`evaluation.py:430-432`) | Clear error: correlation undefined | DELIBERATE DEVIATION FROM REFERENCE |
 | DMFC code: mask selects no time points for a trial | `compute_speed` returns NaN for the empty masked trial (`evaluation.py:412-415`); `pearsonr` then raises `ValueError` for a singleton condition and returns NaN for a condition with at least two trials (`evaluation.py:430-432`) | Clear error: mask must select at least one time point per scored trial | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of NaN/scipy exception) |
@@ -899,9 +901,9 @@ The first release is complete.
 - Known deviations from the reference are listed in §9. The DMFC global
   variant is explicitly a paper reading, not an `nlb_tools` reproduction.
 
-Remaining non-blocking items: the public dtype remains `Nx.float64_t` only
-(§8), the two DMFC speed loops remain duplicated by choice, and the `.npy`
-fixture format is accepted.
+Remaining accepted items: the two DMFC speed loops remain duplicated by choice,
+and the `.npy` fixture format is accepted. The public dtype is decided as
+`Nx.float64_t` only (§8).
 
 ## References
 

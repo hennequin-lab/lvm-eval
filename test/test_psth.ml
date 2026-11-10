@@ -203,6 +203,10 @@ let () =
   expect_invalid_contains "index" [ "Lvm_eval.Psth.r2"; "trial index" ] (fun () ->
     call ~rates ~psth ~cond_idx:[| [| 0; 3 |]; [| 2 |] |] ());
   expect_invalid_contains
+    "negative condition index"
+    [ "Lvm_eval.Psth.r2"; "eval_cond_idx"; "trial index"; "outside" ]
+    (fun () -> call ~rates ~psth ~cond_idx:[| [| -1 |]; [| 2 |] |] ());
+  expect_invalid_contains
     "first-neuron padding"
     [ "Lvm_eval.Psth.r2"; "psth contains NaN" ]
     (fun () -> call ~rates ~psth:bad_padding ~cond_idx ())

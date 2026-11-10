@@ -262,7 +262,10 @@ let () =
   in
   expect_invalid_contains
     "forward rank"
-    [ "Lvm_eval.Bits.forward_prediction"; "rates_forward"; "[trial;time;neuron]" ]
+    [ "Lvm_eval.Bits.forward_prediction"
+    ; "rates_forward"
+    ; "[trial;forward_time;all_neuron]"
+    ]
     (fun () -> call_forward ~rates:rates_2d ~spikes:spikes_2d ());
   expect_invalid_contains
     "forward shape"

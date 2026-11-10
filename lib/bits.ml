@@ -1,11 +1,11 @@
 let invalid fn message = invalid_arg (fn ^ ": " ^ message)
 
-let bps ~fn ~rates_arg ~spikes_arg ~mask_arg ~rates ~spikes ?mask () =
+let bps ~fn ~rates_arg ~spikes_arg ~mask_arg ~axes ~rates ~spikes ?mask () =
   Check.require_host fn rates_arg rates;
   Check.require_host fn spikes_arg spikes;
   Option.iter (Check.require_host fn mask_arg) mask;
-  Check.require_rank3 fn rates_arg rates;
-  Check.require_rank3 fn spikes_arg spikes;
+  Check.require_rank3 ~axes fn rates_arg rates;
+  Check.require_rank3 ~axes fn spikes_arg spikes;
   Check.require_same_shape fn rates_arg spikes_arg rates spikes;
   Option.iter
     (fun mask -> Check.require_same_shape fn mask_arg spikes_arg mask spikes)
@@ -56,6 +56,7 @@ let co_smoothing ~rates_heldout ~spikes_heldout ?mask_heldout () =
     ~rates_arg:"rates_heldout"
     ~spikes_arg:"spikes_heldout"
     ~mask_arg:"mask_heldout"
+    ~axes:"[trial;time;neuron]"
     ~rates:rates_heldout
     ~spikes:spikes_heldout
     ?mask:mask_heldout
@@ -67,6 +68,7 @@ let forward_prediction ~rates_forward ~spikes_forward ?mask_forward () =
     ~rates_arg:"rates_forward"
     ~spikes_arg:"spikes_forward"
     ~mask_arg:"mask_forward"
+    ~axes:"[trial;forward_time;all_neuron]"
     ~rates:rates_forward
     ~spikes:spikes_forward
     ?mask:mask_forward
