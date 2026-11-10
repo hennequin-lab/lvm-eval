@@ -445,6 +445,16 @@ def build_decode_cases():
             "eval_mask": np.ones((1, 1), dtype=bool),
             "kind": "error",
         },
+        {
+            "name": "all_nan_eval",
+            "train_rates": train_rates.copy(),
+            "train_behavior": train_behavior.copy(),
+            "eval_rates": eval_rates.copy(),
+            "eval_behavior": eval_behavior.copy(),
+            "train_mask": train_all.copy(),
+            "eval_mask": eval_all.copy(),
+            "kind": "error",
+        },
     ]
 
     cases[2]["train_behavior"][0, 0, 0] = np.nan
@@ -453,6 +463,7 @@ def build_decode_cases():
     cases[3]["eval_behavior"][:, :, 1] = 2.0
     cases[5]["train_behavior"][0, 0, 1] = np.nan
     cases[6]["train_behavior"][:, :, 0] = np.nan
+    cases[8]["eval_behavior"][:, :, 0] = np.nan
     return cases
 
 

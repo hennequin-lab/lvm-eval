@@ -507,8 +507,8 @@ samples; predict eval; compute R² per output dimension with sklearn’s
   linear map” wording, which is removed.
 - No feature standardization and no decoding lag inside the metric.
 - The CV folds are over flattened samples, not trials.
-- Empty masks, training samples fewer than `folds` (default 5), or non-finite
-  retained values are errors. `folds` must be at least 2.
+- Empty masks, training samples fewer than two per fold (`2 * folds`; default
+  10), or non-finite retained values are errors. `folds` must be at least 2.
 - Constant behaviour dimensions use the force-finite rule: R² 1 if perfect,
   otherwise 0.
 - `alphas`/`folds` are metric parameters with NLB defaults; callers may
@@ -739,8 +739,8 @@ contiguous K-fold, predict). Reuse `R2`. Implement
 
 Done-check: a fixture from `velocity_decoding` matches within 1e-6, including
 the default 9-alpha/5-fold path; one and multiple decode-mask columns are
-tested; no standardization; empty mask raises; training samples below `folds`
-raises; NaN in a non-first behaviour column raises; constant behaviour uses
+tested; no standardization; empty mask raises; training samples below two per
+fold raises; NaN in a non-first behaviour column raises; constant behaviour uses
 force-finite R²; no mutation.
 
 ## 8. Open questions
@@ -775,6 +775,7 @@ without the deviations in this table.
 | PSTH: condition with no eval trials | Skips it (`evaluation.py:367-368`) | Skips it | REPRODUCES REFERENCE |
 | PSTH: all conditions empty | No explicit guard; `np.vstack([])` at `evaluation.py:381` | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | PSTH: no valid rows across all conditions | Empty stacked arrays reach `r2_score`, which raises `ValueError` (`evaluation.py:381-383`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| PSTH: fewer than two valid rows | `r2_score` returns NaN for fewer than two samples (`evaluation.py:383`) | Clear error: R² needs at least two rows | DELIBERATE DEVIATION FROM REFERENCE |
 | PSTH: NaN prediction in a required row | Asserts (`evaluation.py:375-377`) | Clear error naming condition/time | REPRODUCES REFERENCE (rejects; clearer error) |
 | PSTH: inconsistent first-neuron padding | Uses `psth[c,:,0]` only (`evaluation.py:373-374`); other-neuron NaNs are not masked | Same assumption; a non-finite result raises rather than returning NaN | REPRODUCES REFERENCE (documented first-neuron assumption) |
 | PSTH: jitter length mismatch | `jitter[idx]` raises `IndexError` (`evaluation.py:370`) | Clear shape error | DELIBERATE DEVIATION FROM REFERENCE |
@@ -789,10 +790,11 @@ without the deviations in this table.
 | DMFC global: empty/singleton/constant | No `nlb_tools` implementation; the Python golden uses scipy 1.18.1 (`ValueError` for empty/singleton, NaN for constant) | Clear error | DELIBERATE DEVIATION FROM REFERENCE (no reference; Python golden) |
 | velocity: empty decode mask | `Ridge.fit` on zero samples raises (`evaluation.py:481-488`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | velocity: NaN in non-first behaviour column | After mask selection and trial-major flatten, drops samples only by column 0 (`evaluation.py:314-319`); Ridge then fails on NaN target | Selects mask trials, flattens trial-major, drops first-column NaN samples, then raises if any retained value is non-finite | DELIBERATE DEVIATION FROM REFERENCE (clear error instead of estimator failure) |
-| velocity: all-NaN behaviour rows | Drops all rows; Ridge fails (`evaluation.py:314-319`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| velocity: all-NaN train behaviour rows | Drops all train rows; Ridge fails (`evaluation.py:314-319`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| velocity: all-NaN eval behaviour rows | Drops all eval rows; `r2_score` raises on zero samples (`evaluation.py:329`) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | velocity: constant behaviour dimension | sklearn R² force-finite: 1 if perfect, otherwise 0 (`evaluation.py:329`) | Same force-finite rule | REPRODUCES REFERENCE |
 | velocity: no decode mask | `evaluate` creates one all-True mask (`evaluation.py:125-133`) | Default one all-True column | REPRODUCES REFERENCE |
-| velocity: training samples fewer than `folds` (default 5) | `GridSearchCV`/`KFold` raises (`evaluation.py:324-329`; sklearn default 5-fold) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
+| velocity: training samples fewer than two per fold (`2 * folds`) | `KFold` allows `n = folds`, but one-row validation R² is NaN (`evaluation.py:324-329`; sklearn default 5-fold) | Clear error | DELIBERATE DEVIATION FROM REFERENCE |
 | bps: infinite rate | No explicit check; `rates - spikes*log(rates)` returns NaN (`evaluation.py:248`) | Clear `Invalid_argument`: rates must be finite | DELIBERATE DEVIATION FROM REFERENCE |
 
 ## 10. Decode masks and PSTH pooling

@@ -208,6 +208,29 @@ let () =
     (fun () -> call ~rates ~psth:bad_padding ~cond_idx ())
 
 let () =
+  let rates = Nx.full Nx.float64 [| 1; 5; 2 |] 1. in
+  let psth =
+    create
+      float64
+      [| 1; 5; 2 |]
+      [| 1.
+       ; 2.
+       ; Float.nan
+       ; Float.nan
+       ; Float.nan
+       ; Float.nan
+       ; Float.nan
+       ; Float.nan
+       ; Float.nan
+       ; Float.nan
+      |]
+  in
+  expect_invalid_contains
+    "one valid PSTH row"
+    [ "Lvm_eval.R2.score"; "at least two rows" ]
+    (fun () -> call ~rates ~psth ~cond_idx:[| [| 0 |] |] ())
+
+let () =
   let psth_constant = Nx.full Nx.float64 [| 2; 5; 2 |] 3. in
   let rates_constant = Nx.full Nx.float64 [| 3; 5; 2 |] 3. in
   let cond_idx = [| [| 0; 1 |]; [| 2 |] |] in

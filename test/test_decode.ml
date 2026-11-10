@@ -144,7 +144,24 @@ let () =
          then
            expect_invalid_contains
              name
-             [ "Lvm_eval.Ridge.select_alpha"; "fewer than folds" ]
+             [ "Lvm_eval.Ridge.select_alpha"; "two per fold" ]
+             (fun () ->
+                call
+                  ~train_rates
+                  ~train_behavior
+                  ~eval_rates
+                  ~eval_behavior
+                  ~train_mask
+                  ~eval_mask
+                  ())
+         else if String.equal name "all_nan_eval"
+         then
+           expect_invalid_contains
+             name
+             [ "Lvm_eval.Decode.velocity_decoding"
+             ; "eval_decode_mask/behaviour_eval"
+             ; "no eval samples"
+             ]
              (fun () ->
                 call
                   ~train_rates

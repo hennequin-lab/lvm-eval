@@ -123,6 +123,10 @@ let velocity_decoding
       let valid_eval = Nx.logical_not (Nx.isnan (Nx.slice [ A; I 0 ] eval_y)) in
       let eval_x = Nx.slice [ M valid_eval ] eval_x
       and eval_y = drop_first_column_nan fn "behaviour_eval" eval_y in
+      if Int.equal (Nx.shape train_x).(0) 0
+      then invalid fn "train_decode_mask/behaviour_train retains no training samples";
+      if Int.equal (Nx.shape eval_x).(0) 0
+      then invalid fn "eval_decode_mask/behaviour_eval retains no eval samples";
       if not (Nx.item [] (Nx.all (Nx.isfinite train_x)))
       then invalid fn "rates_train contains NaN or infinity after row dropping";
       if not (Nx.item [] (Nx.all (Nx.isfinite eval_x)))

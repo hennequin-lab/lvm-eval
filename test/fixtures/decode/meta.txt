@@ -17,3 +17,4 @@ case empty_mask: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); ev
 case nan_nonfirst: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=error
 case all_nan_behavior: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=error
 case few_samples: train_rates shape=(1, 2, 4); train_behavior shape=(1, 2, 2); eval_rates shape=(1, 2, 4); eval_behavior shape=(1, 2, 2); train_mask shape=(1, 1); eval_mask shape=(1, 1); expected=error
+case all_nan_eval: train_rates shape=(8, 5, 4); train_behavior shape=(8, 5, 2); eval_rates shape=(4, 5, 4); eval_behavior shape=(4, 5, 2); train_mask shape=(8, 1); eval_mask shape=(4, 1); expected=error

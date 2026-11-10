@@ -26,8 +26,8 @@ let svd_solve ~x ~y ~alpha =
       Nx.Infix.(singular / ((singular * singular) +$ alpha))
       (Nx.zeros_like singular)
   in
-  let d = (Nx.shape x).(1) in
-  Nx.matmul (Nx.transpose vt) Nx.Infix.(Nx.reshape [| d; 1 |] scale * uty)
+  let rank = (Nx.shape singular).(0) in
+  Nx.matmul (Nx.transpose vt) Nx.Infix.(Nx.reshape [| rank; 1 |] scale * uty)
 
 let fit ~x ~y ~alpha =
   let fn = "Lvm_eval.Ridge.fit" in
@@ -91,8 +91,11 @@ let select_alpha ~x ~y ~alphas ~folds =
   if Int.equal (Array.length alphas) 0 then invalid fn "the alpha grid is empty";
   if folds < 2 then invalid fn "folds must be at least 2";
   let n = (Nx.shape x).(0) in
-  if n < folds
-  then invalid fn (Printf.sprintf "training samples (%d) fewer than folds (%d)" n folds);
+  if n < 2 * folds
+  then
+    invalid
+      fn
+      (Printf.sprintf "training samples (%d) fewer than two per fold (%d folds)" n folds);
   let score alpha =
     let total = ref 0. in
     for fold = 0 to folds - 1 do
