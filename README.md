@@ -28,8 +28,8 @@ trial or neuron alignment.
 
 Use Dune package management. The Dune package and public library are
 `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is
-`lvm_eval`; the license is ISC. A caller pins the public repository at the
-release tag; `lvm-eval` pins
+`lvm_eval`; the license is ISC. A caller pins the public repository at a
+release tag or full commit; `lvm-eval` pins
 `https://github.com/hennequin-lab/murder` at commit
 `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` and inherits Raven at murder's
 commit. No sibling checkout is required. The exact pin, lock and Raven
@@ -38,7 +38,7 @@ dev-package workaround are in [`plan.md`](plan.md) §6.
 ```text
 (pin
  (url
-  "git+https://github.com/hennequin-lab/lvm-eval.git#v0.1.0")
+  "git+https://github.com/hennequin-lab/lvm-eval.git#e5fbbce0dbe014f2312cb616647bfdf8410aa5c9")
  (package (name lvm-eval)))
 ; caller's dune file
 (libraries lvm-eval)
@@ -53,8 +53,8 @@ required for a clean consumer build.
 
 ## Status
 
-First release `v0.1.0` implemented. The Dune project, library, tests, and
-synthetic golden fixtures are in place. There is no CLI and no file I/O in the
+First release implemented. The Dune project, library, tests, and synthetic
+golden fixtures are in place. There is no CLI and no file I/O in the
 first release. [`plan.md`](plan.md) is the implementation plan and review record,
 including the public API, metric specifications, verification strategy,
 milestones, edge-case behaviour, and known deviations.
