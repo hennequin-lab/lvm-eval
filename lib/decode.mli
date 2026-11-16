@@ -26,12 +26,12 @@
     [Invalid_argument]. There is no feature standardization and no decoding lag
     inside this function. *)
 val velocity_decoding
-  :  rates_train:Nx.float64_t
-  -> behaviour_train:Nx.float64_t
-  -> rates_eval:Nx.float64_t
-  -> behaviour_eval:Nx.float64_t
-  -> ?train_decode_mask:Nx.bool_t
-  -> ?eval_decode_mask:Nx.bool_t
+  :  rates_train:Nx.host Nx.float64_t
+  -> behaviour_train:Nx.host Nx.float64_t
+  -> rates_eval:Nx.host Nx.float64_t
+  -> behaviour_eval:Nx.host Nx.float64_t
+  -> ?train_decode_mask:Nx.host Nx.bool_t
+  -> ?eval_decode_mask:Nx.host Nx.bool_t
   -> ?alphas:float array
   -> ?folds:int
   -> unit

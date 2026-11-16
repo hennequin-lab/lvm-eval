@@ -1,6 +1,7 @@
 (lang dune 3.24)
 
 (name lvm-eval)
+
 (version 0.1.0)
 
 (license ISC)
@@ -9,13 +10,13 @@
 
 (implicit_transitive_deps false)
 
-; Murder is pinned from its public repository at the reviewed commit. Dune
-; resolves the pins declared in murder's dune-project recursively, so the Raven
-; commit comes from murder's own pin. `cmdargs` is only the recursive-pin
+; Murder is pinned from its public repository.
+; Dune resolves the pins declared in murder's dune-project recursively, so the
+; Raven commit comes from murder's own pin. `cmdargs` is only the recursive-pin
 ; anchor; lvm-eval does not depend on it.
+
 (pin
- (url
-  "git+https://github.com/hennequin-lab/murder.git#f2f0263ffc768f0adc49292b28d4e7fb6eda6069")
+ (url "git+https://github.com/hennequin-lab/murder.git")
  (package
   (name cmdargs)))
 

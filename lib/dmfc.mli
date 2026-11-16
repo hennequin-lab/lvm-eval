@@ -20,8 +20,8 @@
     shape or index errors, a trial with no selected time point, fewer than two
     trials in a condition, constant speed or [tp], or non-finite values. *)
 val speed_tp_code
-  :  rates_eval:Nx.float64_t
-  -> mask:Nx.bool_t
+  :  rates_eval:Nx.host Nx.float64_t
+  -> mask:Nx.host Nx.bool_t
   -> conditions:int array
   -> tp:float array
   -> unit
@@ -35,8 +35,8 @@ val speed_tp_code
     {!speed_tp_code}, but ignores condition labels. [tp] is the produced
     interval in seconds. *)
 val speed_tp_global
-  :  rates_eval:Nx.float64_t
-  -> mask:Nx.bool_t
+  :  rates_eval:Nx.host Nx.float64_t
+  -> mask:Nx.host Nx.bool_t
   -> tp:float array
   -> unit
   -> float

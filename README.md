@@ -5,8 +5,10 @@ activity, computed from model outputs and ground-truth targets.
 
 `lvm-eval` is a pure OCaml library. It receives tensors and returns scalar
 metric values. Tensors use `[trial; time; neuron]` throughout; rates are
-expected spike counts per bin (Poisson means), not Hz. The first release
-targets the NLB'21 metric set: co-smoothing bits/spike, forward-prediction
+expected spike counts per bin (Poisson means), not Hz. The public API takes
+host tensors (`Nx.host Nx.float64_t` and `Nx.host Nx.bool_t`); callers move
+values to the host before calling. The first release targets the NLB'21 metric
+set: co-smoothing bits/spike, forward-prediction
 bits/spike, PSTH R², the DMFC_RSG speed–`tp` correlation (the `nlb_tools`
 per-condition variant and a documented global variant), and velocity-decoding
 R². All headline outputs are scalars.
@@ -30,19 +32,24 @@ Use Dune package management. The Dune package and public library are
 `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is
 `lvm_eval`; the license is ISC. A caller pins the public repository at a
 release tag or full commit; `lvm-eval` pins
-`https://github.com/hennequin-lab/murder` at commit
-`f2f0263ffc768f0adc49292b28d4e7fb6eda6069` and inherits Raven at murder's
-commit. No sibling checkout is required. The exact pin, lock and Raven
-dev-package workaround are in [`plan.md`](plan.md) §6.
+`https://github.com/hennequin-lab/murder` from its public Git URL and inherits
+Raven at murder's pin. The current lock resolves Raven at
+`38f65aa94cd513570fe64195d28f2ae0ae67017e`; the murder commit used to generate
+that lock was `1d8a39c1a45944bad5055ed5a36a2592a5c7d147`. No sibling checkout is
+required. The exact pin, lock and Raven dev-package workaround are in
+[`plan.md`](plan.md) §6.
 
 ```text
 (pin
  (url
-  "git+https://github.com/hennequin-lab/lvm-eval.git#e5fbbce0dbe014f2312cb616647bfdf8410aa5c9")
+  "git+https://github.com/hennequin-lab/lvm-eval.git#<lvm-eval-commit>")
  (package (name lvm-eval)))
 ; caller's dune file
 (libraries lvm-eval)
 ```
+
+Replace `<lvm-eval-commit>` with a full commit SHA or release tag that includes
+the Nx API port.
 
 After the caller's own `dune pkg lock`, apply the Raven dev-package workaround
 from [`plan.md`](plan.md) §6.2 to the caller's lock. Raven is a monorepo whose
@@ -61,7 +68,9 @@ milestones, edge-case behaviour, and known deviations.
 [`docs/nlb-protocol.md`](docs/nlb-protocol.md) records the dataset-level NLB
 values for callers; those values are documentation, not code presets.
 
-The first release reproduces the `nlb_tools` NLB metrics for valid inputs.
+The library builds against the Nx API at Raven
+`38f65aa94cd513570fe64195d28f2ae0ae67017e`, the commit pinned by murder. The
+first release reproduces the `nlb_tools` NLB metrics for valid inputs.
 The DMFC_RSG global variant is a documented paper reading, not an
 `nlb_tools` reproduction. Deliberate deviations are limited to degenerate
 inputs and are listed in `plan.md` §9.

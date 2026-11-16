@@ -12,6 +12,6 @@
 (source
  (fetch
   (url
-   git+https://github.com/raven-ml/raven.git#3984341140aef7bfc6f27eb14474f4a261a7b7bc)))
+   git+https://github.com/raven-ml/raven.git#38f65aa94cd513570fe64195d28f2ae0ae67017e)))
 
 (dev)

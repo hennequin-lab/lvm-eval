@@ -1,6 +1,6 @@
 let invalid fn message = invalid_arg (fn ^ ": " ^ message)
 
-let score ~fn ~x_arg ~y_arg ~x ~y =
+let score ~fn ~x_arg ~y_arg ~(x : Nx.host Nx.float64_t) ~(y : Nx.host Nx.float64_t) =
   Check.require_host fn x_arg x;
   Check.require_host fn y_arg y;
   Check.require_rank1 fn x_arg x;

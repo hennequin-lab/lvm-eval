@@ -1,6 +1,16 @@
 let invalid fn message = invalid_arg (fn ^ ": " ^ message)
 
-let bps ~fn ~rates_arg ~spikes_arg ~mask_arg ~axes ~rates ~spikes ?mask () =
+let bps
+      ~fn
+      ~rates_arg
+      ~spikes_arg
+      ~mask_arg
+      ~axes
+      ~(rates : Nx.host Nx.float64_t)
+      ~(spikes : Nx.host Nx.float64_t)
+      ?(mask : Nx.host Nx.bool_t option)
+      ()
+  =
   Check.require_host fn rates_arg rates;
   Check.require_host fn spikes_arg spikes;
   Option.iter (Check.require_host fn mask_arg) mask;

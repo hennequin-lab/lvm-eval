@@ -1,9 +1,9 @@
 let invalid fn message = invalid_arg (fn ^ ": " ^ message)
 
 type t =
-  { x_mean : Nx.float64_t
-  ; y_mean : Nx.float64_t
-  ; coef : Nx.float64_t
+  { x_mean : Nx.host Nx.float64_t
+  ; y_mean : Nx.host Nx.float64_t
+  ; coef : Nx.host Nx.float64_t
   }
 
 let default_alphas =
@@ -18,7 +18,7 @@ let require_finite fn arg x =
   then invalid fn (arg ^ " contains NaN or infinity")
 
 let svd_solve ~x ~y ~alpha =
-  let u, singular, vt = Nx.svd x in
+  let u, singular, vt = Nx.svd Nx.float64 x in
   let uty = Nx.matmul (Nx.transpose u) y in
   let scale =
     Nx.where
@@ -60,8 +60,8 @@ let fit ~x ~y ~alpha =
   let coef =
     match factor with
     | Some factor when Nx.item [] (Nx.all (Nx.isfinite factor)) ->
-      let forward = Nx.solve_triangular ~upper:false factor rhs in
-      Nx.solve_triangular ~upper:true (Nx.transpose factor) forward
+      let forward = Nx.solve_triangular ~triangle:Lower factor rhs in
+      Nx.solve_triangular ~triangle:Upper (Nx.transpose factor) forward
     | _ -> svd_solve ~x:xc ~y:yc ~alpha
   in
   { x_mean; y_mean; coef }

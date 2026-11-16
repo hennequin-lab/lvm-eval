@@ -1,4 +1,4 @@
-let score ~y_true ~y_pred =
+let score ~(y_true : Nx.host Nx.float64_t) ~(y_pred : Nx.host Nx.float64_t) =
   let fn = "Lvm_eval.R2.score" in
   Check.require_host fn "y_true" y_true;
   Check.require_host fn "y_pred" y_pred;

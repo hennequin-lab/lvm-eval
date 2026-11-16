@@ -6,15 +6,19 @@ outputs and targets; never contains models, weights, or training code.
 First metric set: NLB (https://arxiv.org/html/2109.04463v4), reproduced for valid inputs; deliberate degenerate-input deviations are listed in plan.md §9. Reference implementation: https://github.com/neurallatents/nlb_tools.
 
 ## Hard constraints 
-- Pinned to https://github.com/hennequin-lab/murder at commit
-  `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` via Dune package management
-  (`(pin (url "git+https://github.com/hennequin-lab/murder.git#f2f0263ffc768f0adc49292b28d4e7fb6eda6069") ...)`
-  in dune-project, committed dune.lock). Not opam. Raven versions are whatever
-  murder pins.
+- Pinned to https://github.com/hennequin-lab/murder from its public Git URL
+  via Dune package management
+  (`(pin (url "git+https://github.com/hennequin-lab/murder.git") ...)` in
+  dune-project, committed dune.lock). Not opam. Do not pin murder to a fixed
+  commit here; the lock records the resolved Raven commit, currently
+  `38f65aa94cd513570fe64195d28f2ae0ae67017e`. Raven versions are whatever murder
+  pins.
 - OCaml Raven only for numerics/ML. No Python in the build or runtime.
   Python is used only to generate test fixtures, under reference/, outside dune.
 - lvm-eval never depends on other projects (distil etc.).
 - Core metric modules are pure: no file I/O, no global state, no model types.
+- Target only the Nx API at the Raven commit pinned by murder. Do not port to a
+  different Raven version.
 
 ## Data responsibility
 - lvm-eval is data-agnostic. It never loads, stores, splits, aligns or
@@ -51,7 +55,8 @@ First metric set: NLB (https://arxiv.org/html/2109.04463v4), reproduced for vali
   file:function) in its doc comment.
 
 ## Working rules
-- Never guess a Raven API; read murder's source or compile a check.
+- Never guess a Raven API; read the source at the Raven commit pinned by murder
+  or compile a check.
 - Do not add dependencies or change the pinning without asking.
 - Do not add abstractions for hypothetical future metrics beyond plan.md.
 - Commit after each coherent step with a clear message. Do not push.

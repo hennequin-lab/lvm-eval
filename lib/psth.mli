@@ -24,8 +24,8 @@
     non-finite selected predictions or PSTH values, and when no valid rows
     remain. *)
 val r2
-  :  rates_eval:Nx.float64_t
-  -> psth:Nx.float64_t
+  :  rates_eval:Nx.host Nx.float64_t
+  -> psth:Nx.host Nx.float64_t
   -> eval_cond_idx:int array array
   -> ?jitter:int array
   -> unit

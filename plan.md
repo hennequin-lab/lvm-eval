@@ -1,7 +1,8 @@
 # lvm-eval implementation plan
 
-Status: first release implemented; phase-5 review complete. This plan is the source of
-truth for the first release. `README.md` is the short user-facing summary and
+Status: first release implemented; phase-5 review complete; ported to the new
+Nx API pinned by murder. This plan is the source of truth for the first
+release. `README.md` is the short user-facing summary and
 `docs/nlb-protocol.md` is the dataset-value reference. If this plan and an
 older README proposal disagree, this plan wins.
 
@@ -16,7 +17,8 @@ Tensor layout for every public metric is **`[trial; time; neuron]`**. This is
 the `nlb_tools` layout. It is not the `[time; trial; neuron]` layout used by
 the distil model internally. Rates are expected spike counts per bin (Poisson
 means), not Hz. The library computes in float64 on the host CPU and the public
-API takes `Nx.float64_t` tensors (see §11 and §8).
+API takes host tensors, `Nx.host Nx.float64_t` and `Nx.host Nx.bool_t` (see §11
+and §8).
 
 ## 1. Scope and non-goals
 
@@ -106,9 +108,9 @@ modules only.
 
 ### 2.4 Shape and dtype contract
 
-- Every tensor argument is float64 or bool as named in §3. Callers with
-  float32 cast once at the boundary; the metric core never computes in
-  float32.
+- Every tensor argument is float64 or bool as named in §3 and lies on
+  `Nx.Host.on`. Callers with float32 cast once at the boundary and move the
+  result to the host; the metric core never computes in float32.
 - Rank and shape compatibility are checked. The library does not validate
   that trial indices, time axes, or neurons are aligned between arguments;
   the caller owns alignment.
@@ -126,22 +128,22 @@ sync with the plan.
 ```ocaml
 module Bits : sig
   val co_smoothing :
-    rates_heldout:Nx.float64_t ->
-    spikes_heldout:Nx.float64_t ->
-    ?mask_heldout:Nx.bool_t ->
+    rates_heldout:Nx.host Nx.float64_t ->
+    spikes_heldout:Nx.host Nx.float64_t ->
+    ?mask_heldout:Nx.host Nx.bool_t ->
     unit -> float
 
   val forward_prediction :
-    rates_forward:Nx.float64_t ->
-    spikes_forward:Nx.float64_t ->
-    ?mask_forward:Nx.bool_t ->
+    rates_forward:Nx.host Nx.float64_t ->
+    spikes_forward:Nx.host Nx.float64_t ->
+    ?mask_forward:Nx.host Nx.bool_t ->
     unit -> float
 end
 
 module Psth : sig
   val r2 :
-    rates_eval:Nx.float64_t ->
-    psth:Nx.float64_t ->
+    rates_eval:Nx.host Nx.float64_t ->
+    psth:Nx.host Nx.float64_t ->
     eval_cond_idx:int array array ->
     ?jitter:int array ->
     unit -> float
@@ -149,27 +151,27 @@ end
 
 module Dmfc : sig
   val speed_tp_code :
-    rates_eval:Nx.float64_t ->
-    mask:Nx.bool_t ->
+    rates_eval:Nx.host Nx.float64_t ->
+    mask:Nx.host Nx.bool_t ->
     conditions:int array ->
     tp:float array ->
     unit -> float
 
   val speed_tp_global :
-    rates_eval:Nx.float64_t ->
-    mask:Nx.bool_t ->
+    rates_eval:Nx.host Nx.float64_t ->
+    mask:Nx.host Nx.bool_t ->
     tp:float array ->
     unit -> float
 end
 
 module Decode : sig
   val velocity_decoding :
-    rates_train:Nx.float64_t ->
-    behaviour_train:Nx.float64_t ->
-    rates_eval:Nx.float64_t ->
-    behaviour_eval:Nx.float64_t ->
-    ?train_decode_mask:Nx.bool_t ->
-    ?eval_decode_mask:Nx.bool_t ->
+    rates_train:Nx.host Nx.float64_t ->
+    behaviour_train:Nx.host Nx.float64_t ->
+    rates_eval:Nx.host Nx.float64_t ->
+    behaviour_eval:Nx.host Nx.float64_t ->
+    ?train_decode_mask:Nx.host Nx.bool_t ->
+    ?eval_decode_mask:Nx.host Nx.bool_t ->
     ?alphas:float array ->
     ?folds:int ->
     unit -> float
@@ -618,8 +620,7 @@ used by `distil`. The pin is:
 
 ```text
 (pin
- (url
-  "git+https://github.com/hennequin-lab/murder.git#f2f0263ffc768f0adc49292b28d4e7fb6eda6069")
+ (url "git+https://github.com/hennequin-lab/murder.git")
  (package
   (name cmdargs)))
 ```
@@ -627,7 +628,7 @@ used by `distil`. The pin is:
 `cmdargs` is pinned only as the Dune recursive-pin anchor. `lvm-eval` does
 not link or depend on `cmdargs`; it depends on Raven `nx`. The public Git pin
 means a caller does not need a sibling murder checkout: Dune resolves murder's
-commit and inherits its Raven pin. A throwaway project in `/tmp` confirmed the
+current `main` and inherits its Raven pin. A throwaway project in `/tmp` confirmed the
 same resolution with a local pin. The Dune package and public library are `lvm-eval`; the OCaml module is `Lvm_eval`; the internal Dune library name is `lvm_eval`; the license is ISC (matching murder and distil).
 The package depends on:
 
@@ -639,10 +640,12 @@ nx
 
 `nx.io` is test-only. No other numerics library is added.
 
-The lock must resolve Raven at the commit murder pins:
+The lock records the Raven commit that murder's own `dune-project` pins. At
+the time of the Nx port this is:
 
-- murder: `f2f0263ffc768f0adc49292b28d4e7fb6eda6069`
-- Raven: `3984341140aef7bfc6f27eb14474f4a261a7b7bc`
+- murder: `git+https://github.com/hennequin-lab/murder.git` (unpinned; the
+  lock was generated from `1d8a39c1a45944bad5055ed5a36a2592a5c7d147`)
+- Raven: `38f65aa94cd513570fe64195d28f2ae0ae67017e`
 
 Every Raven package entry that the lock does contain (at least
 `dune.lock/nx.dev.pkg`, plus the Raven packages needed by `nx` and any test
@@ -675,7 +678,8 @@ documented in the public `distil` repository's `dune-project` and `README.md`.
 `README.md` states that callers use Dune package management, that the Dune
 package/public library is `lvm-eval`, the OCaml module is `Lvm_eval`, the
 internal library name is `lvm_eval`, and that the license is ISC. It records
-that `lvm-eval` pins murder from its public Git URL and inherits Raven at murder’s commit.
+that `lvm-eval` pins murder from its public Git URL and inherits Raven at
+murder's pin, and it documents the host-tensor API.
 `docs/nlb-protocol.md` records dataset values as documentation only. No
 dataset configs or presets are compiled into the library.
 
@@ -755,9 +759,10 @@ are blocked; see §13.
 
 ### Public dtype
 
-The public API is `Nx.float64_t` only. Callers with float32 cast at the
-boundary; the phase-1 float32-with-internal-cast option was not adopted. This
-keeps one metric path and satisfies the float64 requirement.
+The public API is host float64 and bool tensors only:
+`Nx.host Nx.float64_t` and `Nx.host Nx.bool_t`. Callers with float32 cast at
+the boundary; the phase-1 float32-with-internal-cast option was not adopted.
+This keeps one metric path and satisfies the float64 requirement.
 
 ## 9. Edge-case behaviour
 
@@ -825,15 +830,12 @@ without the deviations in this table.
 ## 11. Execution model
 
 - All metrics compute in float64 on the host CPU. The public API takes
-  `Nx.float64_t`; callers with float32 cast once at the boundary. No metric
-  accumulates sums in float32.
-- Raven’s AMD backend does not implement `cholesky`, `svd`, or
-  `solve_triangular` (Raven pin `3984341140aef7bfc6f27eb14474f4a261a7b7bc`,
-  `packages/nx/lib/amd/backend.ml:1259-1266`). The library never calls those
-  operations on an AMD device.
-- Entry points require `Placement.host`; a non-host tensor raises
-  `Invalid_argument` naming the tensor and its placement. There is no internal
-  transfer.
+  `Nx.host Nx.float64_t` and `Nx.host Nx.bool_t`; callers with float32 cast
+  once at the boundary. No metric accumulates sums in float32.
+- The entry-point types require `Nx.Host.on`, so a non-host tensor is a
+  compile-time type error rather than a runtime transfer. There is no internal
+  placement change.
+- `cholesky`, `svd`, and `solve_triangular` therefore run only on host values.
 - `Nx.sum` accumulation order is unspecified; use the tolerance in §5.3.
 - `Nx.lgamma` is used for `lgamma(spikes+1)`; spike counts are nonnegative
   integers and the model/null `lgamma` terms cancel in bps but are retained to
@@ -844,8 +846,8 @@ without the deviations in this table.
 
 | Component | Version / commit |
 |---|---|
-| murder | `f2f0263ffc768f0adc49292b28d4e7fb6eda6069` |
-| Raven | `3984341140aef7bfc6f27eb14474f4a261a7b7bc` |
+| murder | `git+https://github.com/hennequin-lab/murder.git` (unpinned; current lock: `1d8a39c1a45944bad5055ed5a36a2592a5c7d147`) |
+| Raven | `38f65aa94cd513570fe64195d28f2ae0ae67017e` |
 | nlb_tools | `42f8410b88e12db136910fa2f888b025ea0aa2ae` |
 | lvm-eval release | `0.1.0` |
 | Dune package / Dune library / public name / OCaml module / license | `lvm-eval` / `lvm_eval` / `lvm-eval` / `Lvm_eval` / ISC |
@@ -898,8 +900,8 @@ The first release is complete.
 - The library links only `nx`; tests add `nx.io` for `.npy` fixtures. There is
   no file I/O, CLI, model code, data loading, splitting, alignment, or dataset
   config in the library.
-- The committed `dune.lock` resolves Raven at
-  `3984341140aef7bfc6f27eb14474f4a261a7b7bc` and carries the documented
+- At the first release, the committed `dune.lock` resolved Raven at
+  `3984341140aef7bfc6f27eb14474f4a261a7b7bc` and carried the documented
   dev-package build workaround.
 - All fixtures are synthetic and committed under `test/fixtures/`; the
   generator is `reference/generate_fixtures.py`. Real-data fixtures remain
@@ -908,8 +910,25 @@ The first release is complete.
   variant is explicitly a paper reading, not an `nlb_tools` reproduction.
 
 Remaining accepted items: the two DMFC speed loops remain duplicated by choice,
-and the `.npy` fixture format is accepted. The public dtype is decided as
-`Nx.float64_t` only (§8).
+and the `.npy` fixture format is accepted. The public dtype is decided as host
+float64 only (§8).
+
+## 16. New Nx API port
+
+`lvm-eval` now builds against the Nx API at the Raven commit pinned by murder
+(`38f65aa94cd513570fe64195d28f2ae0ae67017e`, murder `main`
+`1d8a39c1a45944bad5055ed5a36a2592a5c7d147`).
+
+- `Nx.t` has a placement parameter and `Nx.float64_t` / `Nx.bool_t` take a
+  device argument. Public entry points take `Nx.host Nx.float64_t` and
+  `Nx.host Nx.bool_t`.
+- `Nx.Placement.host` was replaced by `Nx.Host.on`.
+- `Nx.svd` takes an explicit dtype: `Nx.svd Nx.float64 x`.
+- `Nx.solve_triangular` selects its triangle with `~triangle:Lower` or
+  `~triangle:Upper` instead of `~upper`.
+- Metric formulas, fixtures, and expected values are unchanged. `dune build
+  @ci` passes, and the synthetic goldens still match within the tolerance in
+  §5.3.
 
 ## References
 

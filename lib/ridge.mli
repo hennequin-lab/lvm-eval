@@ -11,10 +11,10 @@ val default_alphas : float array
     [x] and [y] are [sample;feature] matrices with the same sample count;
     [alpha] must be finite and positive. Non-finite inputs and empty feature
     dimensions raise [Invalid_argument]. *)
-val fit : x:Nx.float64_t -> y:Nx.float64_t -> alpha:float -> t
+val fit : x:Nx.host Nx.float64_t -> y:Nx.host Nx.float64_t -> alpha:float -> t
 
 (** [predict m x] applies the fitted map to [sample;feature] rows. *)
-val predict : t -> Nx.float64_t -> Nx.float64_t
+val predict : t -> Nx.host Nx.float64_t -> Nx.host Nx.float64_t
 
 (** [select_alpha ~x ~y ~alphas ~folds] selects the alpha with the highest
     mean validation R² over contiguous folds of the flattened samples. Ties
@@ -23,8 +23,8 @@ val predict : t -> Nx.float64_t -> Nx.float64_t
     Raises [Invalid_argument] unless [folds >= 2], the alpha grid is non-empty,
     and there are at least two samples per fold ([samples >= 2 * folds]). *)
 val select_alpha
-  :  x:Nx.float64_t
-  -> y:Nx.float64_t
+  :  x:Nx.host Nx.float64_t
+  -> y:Nx.host Nx.float64_t
   -> alphas:float array
   -> folds:int
   -> float

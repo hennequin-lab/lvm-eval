@@ -6,4 +6,4 @@
 
     It raises [Invalid_argument] unless both tensors have at least two rows and
     one neuron, and otherwise share a shape. *)
-val score : y_true:Nx.float64_t -> y_pred:Nx.float64_t -> float
+val score : y_true:Nx.host Nx.float64_t -> y_pred:Nx.host Nx.float64_t -> float

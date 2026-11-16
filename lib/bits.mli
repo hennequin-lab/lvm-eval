@@ -18,9 +18,9 @@
     and [log 2] normalization. It raises [Invalid_argument] on shape or
     placement errors and on undefined inputs. *)
 val co_smoothing
-  :  rates_heldout:Nx.float64_t
-  -> spikes_heldout:Nx.float64_t
-  -> ?mask_heldout:Nx.bool_t
+  :  rates_heldout:Nx.host Nx.float64_t
+  -> spikes_heldout:Nx.host Nx.float64_t
+  -> ?mask_heldout:Nx.host Nx.bool_t
   -> unit
   -> float
 
@@ -40,8 +40,8 @@ val co_smoothing
     absent, non-NaN [spikes_forward] entries are scored. The arithmetic is the
     same bps core as {!co_smoothing}. *)
 val forward_prediction
-  :  rates_forward:Nx.float64_t
-  -> spikes_forward:Nx.float64_t
-  -> ?mask_forward:Nx.bool_t
+  :  rates_forward:Nx.host Nx.float64_t
+  -> spikes_forward:Nx.host Nx.float64_t
+  -> ?mask_forward:Nx.host Nx.bool_t
   -> unit
   -> float

@@ -7,6 +7,6 @@ val score
   :  fn:string
   -> x_arg:string
   -> y_arg:string
-  -> x:Nx.float64_t
-  -> y:Nx.float64_t
+  -> x:Nx.host Nx.float64_t
+  -> y:Nx.host Nx.float64_t
   -> float

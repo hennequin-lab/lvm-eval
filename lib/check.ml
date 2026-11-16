@@ -51,11 +51,11 @@ let require_same_shape fn arg1 arg2 x y =
 
 let require_host fn arg x =
   let placement = Nx.placement x in
-  if not (Nx.Placement.equal placement Nx.Placement.host)
+  if not (Nx.Placement.equal placement Nx.Host.on)
   then
     invalid_arg
       (Format.asprintf
-         "%s: %s must be on Placement.host, got %a"
+         "%s: %s must be on Nx.Host.on, got %a"
          fn
          arg
          Nx.Placement.pp
