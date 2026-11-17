@@ -85,6 +85,12 @@ let fold_range ~n ~folds fold =
   let start = (fold * (n / folds)) + Int.min fold (n mod folds) in
   start, start + size
 
+(* Positions as an int64 tensor let [Nx.slice] gather directly instead of
+   validating and assembling a written index list one position at a time. *)
+let index_tensor indices =
+  let values = Array.of_list (List.map Int64.of_int indices) in
+  Nx.create Nx.int64 [| Array.length values |] values
+
 let select_alpha ~x ~y ~alphas ~folds =
   let fn = "Lvm_eval.Ridge.select_alpha" in
   require_matrix fn "x" x;
@@ -99,26 +105,33 @@ let select_alpha ~x ~y ~alphas ~folds =
     invalid
       fn
       (Printf.sprintf "training samples (%d) fewer than two per fold (%d folds)" n folds);
-  let score alpha =
-    let total = ref 0. in
-    for fold = 0 to folds - 1 do
-      let start, stop = fold_range ~n ~folds fold in
-      let validation = List.init (stop - start) (fun i -> start + i) in
-      let training =
-        List.init n (fun i -> i) |> List.filter (fun i -> i < start || i >= stop)
-      in
-      let model =
-        fit ~x:(Nx.slice [ L training ] x) ~y:(Nx.slice [ L training ] y) ~alpha
-      in
-      let predicted = predict model (Nx.slice [ L validation ] x) in
-      total := !total +. R2.score ~y_true:(Nx.slice [ L validation ] y) ~y_pred:predicted
-    done;
-    !total /. Float.of_int folds
-  in
+  let scores = Array.make (Array.length alphas) 0. in
+  (* The fold slices do not depend on alpha: gather them once and score every
+     candidate, rather than repeating each gather for every alpha. *)
+  for fold = 0 to folds - 1 do
+    let start, stop = fold_range ~n ~folds fold in
+    let validation = List.init (stop - start) (fun i -> start + i) in
+    let training =
+      List.init n (fun i -> i) |> List.filter (fun i -> i < start || i >= stop)
+    in
+    let training_idx = index_tensor training
+    and validation_idx = index_tensor validation in
+    let train_x = Nx.slice [ T training_idx ] x
+    and train_y = Nx.slice [ T training_idx ] y
+    and validation_x = Nx.slice [ T validation_idx ] x
+    and validation_y = Nx.slice [ T validation_idx ] y in
+    Array.iteri
+      (fun alpha_index alpha ->
+         let model = fit ~x:train_x ~y:train_y ~alpha in
+         let predicted = predict model validation_x in
+         scores.(alpha_index)
+         <- scores.(alpha_index) +. R2.score ~y_true:validation_y ~y_pred:predicted)
+      alphas
+  done;
   let best = ref None in
-  Array.iter
-    (fun alpha ->
-       let candidate = score alpha in
+  Array.iteri
+    (fun alpha_index alpha ->
+       let candidate = scores.(alpha_index) /. Float.of_int folds in
        match !best with
        | Some (_, best_score) when Float.compare candidate best_score <= 0 -> ()
        | _ -> best := Some (alpha, candidate))
